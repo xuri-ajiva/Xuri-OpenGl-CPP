@@ -9,8 +9,13 @@
 #include <thread>
 #include <cmath>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "libs/stb_image.h"
+//#define STB_IMAGE_IMPLEMENTATION
+//#include "libs/stb_image.h"
+
+#include "libs/glm/glm.hpp"
+#include "libs/glm/ext/matrix_transform.hpp"
+#include "libs/glm/ext/matrix_relational.hpp"
+#include "libs/glm/gtc/matrix_transform.hpp"
 
 #ifdef _WIN32
     #include <windows.h>
@@ -32,17 +37,17 @@
 
 Vertex vertices[] = {
 	Vertex {
-		-0.9f, -0.9f, 0.0f,
+		-0.5f, -0.5f, 0.0f,
 		0.0F, 0.0F,
 		1.0f, 0.0f, 0.0f, 1.0f
 	},
 	Vertex {
-		-0.9f, 0.9f, 0.0f,
+		-0.0f, 0.5f, 0.0f,
 		0.0F, 1.0F,
 		0.0f, 1.0f, 0.0f, 1.0f
 	},
 	Vertex {
-		0.9f, -0.9f, 0.0f,
+		0.5f, -0.5f, 0.0f,
 		1.0F, 0.0F,
 		0.0f, 0.0f, 1.0f, 1.0f
 	},
@@ -51,12 +56,41 @@ Vertex vertices[] = {
 		1.0F, 1.0F,
 		1.0f, 0.0f, 0.0f, 1.0f
 	},
+	Vertex {
+		-0.9f, -0.9f, -0.2f,
+		0.0F, 0.0F,
+		0.0f, 0.0f, 1.0f, 1.0f
+	},
+	Vertex {
+		-0.0f, 0.9f, -0.2f,
+		0.0F, 1.0F,
+		1.0f, 0.0f, 0.0f, 1.0f
+	},
+	Vertex {
+		0.9f, -0.9f, -0.2f,
+		1.0F, 0.0F,
+		0.0f, 1.0f, 1.0f, 1.0f
+	},
+	Vertex {
+		0.9f, 0.9f, -0.2f,
+		1.0F, 1.0F,
+		1.0f, 0.0f, 0.0f, 1.0f
+	},
 };
 Uint32 numVertices = (sizeof(vertices) / sizeof(*vertices));
 
 Uint32 indices [] = {
 	0, 1, 2,
-	1, 2, 3
+	//4, 1, 6,
+
+	//0, 1, 4,
+	//1, 5, 4,
+	//
+	//1, 2, 5,
+	//2, 5, 6,
+	//
+	//0, 2, 4,
+	//2, 4, 6,
 };
 Uint32 numIndices = (sizeof(indices) / sizeof(*indices));
 
@@ -95,7 +129,11 @@ int main(int argc, char** argv) {
 
 	const int colorUniformLocation = GLCALL (glGetUniformLocation (shader.GetShaderID(), "u_color"));
 
+	if (colorUniformLocation != -1) {
+		glUniform4f (colorUniformLocation, 1, 1, 1, 1.0F);
+	}
 
+	/*
 	Int32 textureWidth  = 0;
 	Int32 textureHeight = 0;
 	Int32 bitsPerPixel  = 0;
@@ -119,7 +157,7 @@ int main(int argc, char** argv) {
 	if (textureBuffer) {
 		stbi_image_free (textureBuffer);
 	}
-
+	*/
 
 	std::cout << "shader initialized PointerID: " << shader.GetShaderID() << std::endl;
 
@@ -131,31 +169,45 @@ int main(int argc, char** argv) {
 	std::cout << "indexBuffer initialized PointerID: " << vertex_buffer.GET_BUFFER_ID() << std::endl;
 	index_buffer.UNBIND();
 
+	auto model = glm::mat4 (1.0F);
+	model      = scale (model, glm::vec3 (3.0F));
+
+	auto projection = glm::ortho (-2.0F, 2.0F, -2.0F, 2.0F, -10.0F, 100.0F);
+	projection      = glm::perspective (glm::radians (45.0F), 5.0F / 4.0F, .1F, 100.0F);
+
+	auto view = glm::translate (glm::mat4 (1.0F), glm::vec3 (.0F, .0F, -10.0F));
+
+	auto modelViewProj = projection * model * view;
+
+	const int modelViewProjMatrixLocation = GLCALL (glGetUniformLocation(shader.GetShaderID(), "u_modelViewProj"));
 
 	do {
 		glClearColor (0.1f, 0.1f, 0.1f, 1.0f);
 		glClear (GL_COLOR_BUFFER_BIT);
 
-		if (colorUniformLocation != -1) {
-			float32 r = (sinf (main_class.time) + 1.0F) / 2.0F;
-			float32 g = (cosf (main_class.time) + 1.0F) / 2.0F;;
-			float32 b = (-sinf (main_class.time) + 1.0F) / 2.0F;;
+		//float32 r = (sinf (main_class.time) + 1.0F) / 2.0F;
+		//float32 g = (cosf (main_class.time) + 1.0F) / 2.0F;;
+		//float32 b = ((-sinf (main_class.time)) + 1.0F) / 2.0F;;
 
-			glUniform4f (colorUniformLocation, r, g, b, 0.0F);
-		}
+
+		model = glm::rotate (model, sinf (main_class.time)*2* main_class.delta, glm::vec3 (0,1,0));
+
+		modelViewProj = projection * view * model;
 
 		vertex_buffer.BIND();
 		index_buffer.BIND();
-		GLCALL (glActiveTexture(GL_TEXTURE0));
-		GLCALL (glBindTexture(GL_TEXTURE_2D, textureId));
+		/*GLCALL (glActiveTexture(GL_TEXTURE0));
+		GLCALL (glBindTexture(GL_TEXTURE_2D, textureId));*/
+
+		GLCALL (glUniformMatrix4fv(modelViewProjMatrixLocation,1,GL_FALSE, &modelViewProj[0][0]));
 		GLCALL (glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0));
 		index_buffer.UNBIND();
 		vertex_buffer.UNBIND();
 	}
 	while (main_class.MainLoop());
-
+	/*
 	glDeleteTextures (1, &textureId);
-
+*/
 	//std::cin.get();
 	return 0;
 }

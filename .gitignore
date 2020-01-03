@@ -339,3 +339,4 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 OpenGl/lib/stb_image.h
+OpenGl/libs/glm/
