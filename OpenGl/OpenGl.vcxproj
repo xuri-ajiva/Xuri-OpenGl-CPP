@@ -151,8 +151,8 @@
     <ClInclude Include="VertexBuffer.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="basic-fragment-shader.glsl.frag" />
-    <None Include="basic-vertex-shader.glsl.vert" />
+    <None Include="Shaders\basic-fragment-shader.glsl.frag" />
+    <None Include="Shaders\basic-vertex-shader.glsl.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -15,10 +15,10 @@
     <ClInclude Include="Shader.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="basic-fragment-shader.glsl.frag">
+    <None Include="Shaders\basic-fragment-shader.glsl.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="basic-vertex-shader.glsl.vert">
+    <None Include="Shaders\basic-vertex-shader.glsl.vert">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

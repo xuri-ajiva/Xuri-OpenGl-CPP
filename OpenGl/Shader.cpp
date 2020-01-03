@@ -19,6 +19,8 @@ void Shader::unbind(){
 	glUseProgram (0);
 }
 
+GLuint Shader::GetShaderID() const{ return  shaderId;}
+
 GLuint Shader::compile(std::string shaderSource, GLenum type){
 	GLuint      id  = glCreateShader (type);
 	const char* src = shaderSource.c_str();

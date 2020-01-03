@@ -14,6 +14,8 @@ public:
 
 	static void unbind();
 
+	GLuint GetShaderID() const;
+
 private:
 
 	static GLuint compile(std::string shaderSource, GLenum type);

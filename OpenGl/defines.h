@@ -15,7 +15,14 @@ typedef float  float32;
 typedef double float64;
 
 struct Vertex {
+	// Position
 	float32 x;
 	float32 y;
 	float32 z;
+
+	// Color
+	float32 r;
+	float32 g;
+	float32 b;
+	float32 a;
 };
