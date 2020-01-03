@@ -1,5 +1,15 @@
 #pragma once
+#define GLEW_STATIC
+#define SDL_MAIN_HANDLED
+
 #include <cstdint>
+#include <ctime>
+#include <iomanip>
+#include <iostream>
+#include <GL/glew.h>
+#include <SDL2/SDL.h>
+#include <chrono>
+
 
 typedef int8_t  Int8;
 typedef int16_t Int16;

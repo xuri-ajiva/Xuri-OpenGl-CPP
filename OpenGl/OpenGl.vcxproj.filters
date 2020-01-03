@@ -14,6 +14,7 @@
     <ClInclude Include="VertexBuffer.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="IndexBuffer.h" />
+    <ClInclude Include="Framework.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\basic-fragment-shader.glsl.frag">
