@@ -81,9 +81,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\0EE934262B1635B7\source\repos\OpenGl\libs\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\0EE934262B1635B7\source\repos\OpenGl\libs\x_86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\0EE934262B1635B7\source\repos\OpenGl\libs\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\0EE934262B1635B7\source\repos\OpenGl\libs\x_64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -148,6 +152,7 @@
   <ItemGroup>
     <ClInclude Include="defines.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="IndexBuffer.h" />
     <ClInclude Include="VertexBuffer.h" />
   </ItemGroup>
   <ItemGroup>
