@@ -22,7 +22,7 @@ private:
 	GLuint VAO_ {};
 };
 
-inline VertexBuffer::VertexBuffer(void* data, Uint32 numVertices){
+inline VertexBuffer::VertexBuffer(void* data, Uint32 numVertices) {
 	glGenVertexArrays (1, &VAO_);
 	glBindVertexArray (VAO_); 
 	
@@ -32,28 +32,30 @@ inline VertexBuffer::VertexBuffer(void* data, Uint32 numVertices){
 	glBindBuffer (GL_ARRAY_BUFFER, BUFFER_ID_);
 	glBufferData (GL_ARRAY_BUFFER, numVertices * sizeof (Vertex), data, GL_STATIC_DRAW);
 
-	glEnableVertexAttribArray (0);
-	glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, sizeof (Vertex),reinterpret_cast<void*> (offsetof (struct Vertex, x)));
-	glEnableVertexAttribArray (1);
-	glVertexAttribPointer (1, 4, GL_FLOAT, GL_FALSE, sizeof (Vertex),reinterpret_cast<void*> (offsetof (struct Vertex, r)));
+		glEnableVertexAttribArray(0);
+	    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(struct Vertex,x));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(struct Vertex,u));
+        glEnableVertexAttribArray(2);
+	    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(struct Vertex,r));
 
 	//bind all to vio -**
 
 	glBindVertexArray (0);
 }
 
-inline VertexBuffer::~VertexBuffer(){
+inline VertexBuffer::~VertexBuffer() {
 	glDeleteBuffers (1, &BUFFER_ID_);
 }
 
-inline void VertexBuffer::BIND() const{
+inline void VertexBuffer::BIND() const {
 	glBindVertexArray (VAO_);
 }
 
-inline void VertexBuffer::UNBIND(){
+inline void VertexBuffer::UNBIND() {
 	glBindVertexArray (0);
 }
 
-inline GLuint VertexBuffer::GET_BUFFER_ID() const{
+inline GLuint VertexBuffer::GET_BUFFER_ID() const {
 	return BUFFER_ID_;
 }

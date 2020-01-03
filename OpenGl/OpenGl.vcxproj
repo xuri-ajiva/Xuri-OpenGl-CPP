@@ -152,6 +152,7 @@
   <ItemGroup>
     <ClInclude Include="defines.h" />
     <ClInclude Include="Framework.h" />
+    <ClInclude Include="libs\stb_image.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="IndexBuffer.h" />
     <ClInclude Include="VertexBuffer.h" />
@@ -159,6 +160,10 @@
   <ItemGroup>
     <None Include="Shaders\basic-fragment-shader.glsl.frag" />
     <None Include="Shaders\basic-vertex-shader.glsl.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Shaders\image.png" />
+    <Image Include="Shaders\index.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

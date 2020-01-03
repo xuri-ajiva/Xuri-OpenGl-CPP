@@ -15,6 +15,7 @@
     <ClInclude Include="Shader.h" />
     <ClInclude Include="IndexBuffer.h" />
     <ClInclude Include="Framework.h" />
+    <ClInclude Include="libs\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\basic-fragment-shader.glsl.frag">
@@ -23,5 +24,9 @@
     <None Include="Shaders\basic-vertex-shader.glsl.vert">
       <Filter>Shaders</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Shaders\image.png" />
+    <Image Include="Shaders\index.png" />
   </ItemGroup>
 </Project>

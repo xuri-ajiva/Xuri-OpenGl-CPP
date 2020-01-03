@@ -6,15 +6,15 @@
 #include <iostream>
 #include "Shader.h"
 
-
 class MainClass {
 public:
 	int Init();
 
-	Uint64  perfCounterFrequency = SDL_GetPerformanceFrequency();
-	Uint64  lastCounter          = SDL_GetPerformanceCounter();
+	Uint64  perf_counter_frequency = SDL_GetPerformanceFrequency();
+	Uint64  last_counter          = SDL_GetPerformanceCounter();
 	float32 delta                = 0.0F;
-	Uint64  Frames               = 0;
+	float32 time                 = 0.0F;
+	Uint64  frames               = 0;
 	//WireFrame
 	//glPolygonMode (GL_FRONT_AND_BACK,GL_LINE);
 
@@ -66,7 +66,7 @@ inline int MainClass::Init() {
 		std::cin.get();
 		return -1;
 	}
-	
+
 #if _DEBUG
 	glEnable (GL_DEBUG_OUTPUT);
 	glEnable (GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -87,12 +87,13 @@ inline bool MainClass::MainLoop() {
 	}
 
 	Uint64 endCounter     = SDL_GetPerformanceCounter();
-	Uint64 counterElapsed = endCounter - lastCounter;
-	delta                 = float32 (counterElapsed) / float32 (perfCounterFrequency);
-	Uint32 FPS            = Uint32 (float32 (perfCounterFrequency) / float32 (counterElapsed));
+	Uint64 counterElapsed = endCounter - last_counter;
+	delta                 = float32 (counterElapsed) / float32 (perf_counter_frequency);
+	Uint32 FPS            = Uint32 (float32 (perf_counter_frequency) / float32 (counterElapsed));
 
-	if (Frames % 10 == 0) SDL_SetWindowTitle (window, ("FPS: " + std::to_string (FPS)).c_str());
-	lastCounter = endCounter;
-	Frames++;
+	if (frames % 10 == 0) SDL_SetWindowTitle (window, ("FPS: " + std::to_string (FPS)).c_str());
+	last_counter = endCounter;
+	frames++;
+	time+= delta;
 	return true;
 }

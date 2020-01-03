@@ -30,6 +30,10 @@ struct Vertex {
 	float32 y;
 	float32 z;
 
+	// Texture
+	float32 u;
+	float32 v;
+
 	// Color
 	float32 r;
 	float32 g;
