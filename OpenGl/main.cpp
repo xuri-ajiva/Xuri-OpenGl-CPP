@@ -1,10 +1,19 @@
 #define GLEW_STATIC
 #define SDL_MAIN_HANDLED
 
-
+#include <ctime>
+#include <iomanip>
 #include <iostream>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
+#include <chrono>
+#include <thread>
+
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <unistd.h>
+#endif // _WIN32
 
 #ifdef _WIN32
 #pragma comment(lib, "SDL2.lib")
@@ -13,7 +22,11 @@
 #endif
 
 #include "defines.h"
-#include  "VertexBuffer.h"
+#include "VertexBuffer.h"
+#include "Shader.h"
+
+
+void sleepcp(int milliseconds);
 
 int main(int argc, char** argv){
 	std::cout << "Starting App..." << std::endl;
@@ -28,7 +41,8 @@ int main(int argc, char** argv){
 	SDL_GL_SetAttribute (SDL_GL_BUFFER_SIZE, 32);
 	SDL_GL_SetAttribute (SDL_GL_DOUBLEBUFFER, 1);
 
-	window = SDL_CreateWindow ("Xuri´s OpenGL C++", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600,SDL_WINDOW_OPENGL);
+	window = SDL_CreateWindow ("Xuri´s OpenGL C++", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600,
+	                           SDL_WINDOW_OPENGL);
 	SDL_GLContext glContext = SDL_GL_CreateContext (window); //SDL_SetWindowResizable(window, SDL_TRUE);
 
 	GLenum err = glewInit();
@@ -47,19 +61,45 @@ int main(int argc, char** argv){
 	};
 	Uint32 numVertices = 3;
 
-	VertexBuffer vertex_buffer (vertices,numVertices);
+	VertexBuffer vertex_buffer (vertices, numVertices);
 	vertex_buffer.UNBIND();
-	
+
+	std::string ShaderPos      = "Shaders/";
+	const char* vertexShader   = "basic-vertex-shader.glsl.vert";
+	const char* fragmentShader = "basic-fragment-shader.glsl.frag";
+
+	std::cout << "Shaders: " << ShaderPos << std::endl
+		<< "[" << vertexShader << ", " << fragmentShader << "]" << std::endl;
+
+	const Shader shader ((ShaderPos + vertexShader).c_str(), (ShaderPos + fragmentShader).c_str());
+
+	shader.bind();
+
 	std::cout << "vertexBuffer initialized PointerID: " << vertex_buffer.GET_BUFFER_ID() << std::endl;
 
-	bool close = false;
+	std::chrono::steady_clock::time_point start, end;
+
+	time_t s, e;
+	time (&s);
+	int  frames = 0;
+	bool close  = false;
 	while (!close) {
+		start = std::chrono::high_resolution_clock::now();
+
 		glClearColor (0.0f, 0.0f, 0.0f, 1.0f);
 		glClear (GL_COLOR_BUFFER_BIT);
-		
+
 		vertex_buffer.BIND();
-		glDrawArrays (GL_TRIANGLES,0, numVertices);
+		glDrawArrays (GL_TRIANGLES, 0, numVertices);
 		vertex_buffer.UNBIND();
+
+		//glColor3b (100, 100, 000);
+		//
+		//glBegin (GL_TRIANGLES);
+		//glVertex2f (-0.5f, -0.5f);
+		//glVertex2f (0.0f, 0.5f);
+		//glVertex2f (0.5f, -0.5f);
+		//glEnd();
 
 		SDL_GL_SwapWindow (window);
 
@@ -70,8 +110,31 @@ int main(int argc, char** argv){
 				close = true;
 			}
 		}
+
+		end      = std::chrono::high_resolution_clock::now();
+		auto div = std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count();
+		
+		//std::cout << div << std::endl;
+		time (&e);
+		if (double (e - s) > 1) {
+			SDL_SetWindowTitle (window, ("FPS: " + std::to_string (frames)).c_str());
+
+			frames = 0;
+			time (&s);
+		}
+
+		frames++;
+		//std::this_thread::sleep_for (std::chrono::nanoseconds (div * 30));
 	}
 
 	std::cin.get();
 	return 0;
+}
+
+void sleepcp(int milliseconds){
+    #ifdef _WIN32
+	Sleep (milliseconds);
+    #else
+        usleep(milliseconds * 1000);
+    #endif // _WIN32
 }
