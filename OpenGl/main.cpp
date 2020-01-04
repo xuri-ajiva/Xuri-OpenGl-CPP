@@ -1,16 +1,22 @@
 #include "defines.h"
 
+#define TEXTURE_MY
+
 #include <ctime>
 #include <iomanip>
 #include <iostream>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
+#include <vector>
 #include <chrono>
 #include <thread>
+#include <fstream>
 #include <cmath>
 
+#ifdef TEXTURE_MY
 #define STB_IMAGE_IMPLEMENTATION
 #include "libs/stb_image.h"
+#endif
 
 #include "libs/glm/glm.hpp"
 #include "libs/glm/ext/matrix_transform.hpp"
@@ -37,6 +43,7 @@
 
 #include "Framework.h"
 
+/*
 Vertex vertices[] = {
 	Vertex {
 		-0.5f, -0.5f, 0.0f,
@@ -101,7 +108,8 @@ Vertex vertices[] = {
 };
 Uint32 numVertices = (sizeof(vertices) / sizeof(*vertices));
 
-Uint32 indices [] = {
+
+Uint64 indices [] = {
 	0, 1, 2,
 	//8,9,10,
 	//8,10,11,
@@ -117,7 +125,7 @@ Uint32 indices [] = {
 	//2, 4, 6,
 };
 Uint32 numIndices = (sizeof(indices) / sizeof(*indices));
-
+*/
 #if _DEBUG
 void              _GLGetError(const char* file, int line, const char* call) {
 	while (GLenum error = glGetError()) {
@@ -157,7 +165,7 @@ int main(int argc, char** argv) {
 		glUniform4f(colorUniformLocation, 1, 1, 1, 1.0F);
 	}
 
-
+#ifdef TEXTURE_MY
 	Int32 textureWidth  = 0;
 	Int32 textureHeight = 0;
 	Int32 bitsPerPixel  = 0;
@@ -181,15 +189,49 @@ int main(int argc, char** argv) {
 	if (textureBuffer) {
 		stbi_image_free(textureBuffer);
 	}
+#endif
 
+	std::vector<Vertex> vertices;
+	uint64_t            numVertices = 0;
+
+	std::vector<uint32_t> indices;
+	uint64_t              numIndices = 0;
+
+	std::ifstream input = std::ifstream((DataPos + "monkey.bmf").c_str(), std::ios::in | std::ios::binary);
+	if (!input.is_open()) {
+		std::cout << "Error reading model file" << std::endl;
+		return 1;
+	}
+
+	input.read((char*)&numVertices, sizeof(Uint64));
+	input.read((char*)&numIndices, sizeof(Uint64));
+
+	for (Uint64 i = 0; i < numVertices; i++) {
+		Vertex vertex;
+		input.read((char*)&vertex.x, sizeof(float));
+		input.read((char*)&vertex.y, sizeof(float));
+		input.read((char*)&vertex.z, sizeof(float));
+		vertex.u = abs(vertex.x);
+		vertex.v = abs(vertex.y);
+		vertex.r = vertex.x;
+		vertex.g = vertex.y;
+		vertex.b = vertex.z;
+		vertex.a = 1.0F;
+		vertices.push_back(vertex);
+	}
+	for (Uint64 i = 0; i < numIndices; i++) {
+		Uint32 index;
+		input.read((char*)&index, sizeof(Uint32));
+		indices.push_back(index);
+	}
 
 	std::cout << "shader initialized PointerID: " << shader.GetShaderID() << std::endl;
 
-	VertexBuffer vertex_buffer(vertices, numVertices);
+	VertexBuffer vertex_buffer(vertices.data(), numVertices);
 	std::cout << "vertexBuffer initialized PointerID: " << vertex_buffer.GET_BUFFER_ID() << std::endl;
 	vertex_buffer.UNBIND();
 
-	IndexBuffer index_buffer(indices, numIndices, sizeof(indices[0]));
+	IndexBuffer index_buffer(indices.data(), numIndices, sizeof(indices[0]));
 	std::cout << "indexBuffer initialized PointerID: " << vertex_buffer.GET_BUFFER_ID() << std::endl;
 	index_buffer.UNBIND();
 
@@ -204,13 +246,25 @@ int main(int argc, char** argv) {
 
 	const int modelViewProjMatrixLocation = GLCALL(glGetUniformLocation(shader.GetShaderID(), "u_modelViewProj"));
 
-	bool    b_W         = false;
-	bool    b_S         = false;
-	bool    b_A         = false;
-	bool    b_D         = false;
-	float32 camaraSpeed = 6.0F;
+	bool b_W = false;
+	bool b_S = false;
+	bool b_A = false;
+	bool b_D = false;
+	bool b_Q = false;
+	bool b_E = false;
 
+	//glPolygonMode (GL_FRONT_AND_BACK,GL_LINE);
+
+	float32 camaraSpeed = 6.0F;
+	
+	//GLCALL(glEnable(GL_DEPTH_TEST));
+	GLCALL(glEnable(GL_DEPTH_TEST));
+	//glDepthFunc(GL_EQUAL);
 	do {
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		GLCALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+		GLCALL(glClear(GL_DEPTH_BUFFER_BIT));
+
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) {
@@ -229,22 +283,35 @@ int main(int argc, char** argv) {
 						break;
 					case SDLK_d: b_D = state;
 						break;
-					case SDLK_F1: if (state) {
-							camara.SetFreeCam(!camara.GetFreeCam());
-						}
+					case SDLK_q: b_Q = state;
+						break;
+					case SDLK_e: b_E = state;
+						break;
+					case SDLK_F1: if (state) camara.SetFreeCam(!camara.GetFreeCam());
+						break;
+					case SDLK_F2: if (state) SDL_SetRelativeMouseMode(SDL_FALSE);
 						break;
 					default: ;
 				}
 				if (event.key.keysym.mod & KMOD_LSHIFT) {
 					camaraSpeed = 14.0;
 				}
+				else if(event.key.keysym.mod & KMOD_LCTRL) {
+					camaraSpeed = 2.0;
+				}
 				else {
 					camaraSpeed = 6.0;
 				}
+				
 				//if (event.key.keysym.sym == SDLK_p && event.key.keysym.mod & KMOD_LALT) { }
 			}
 			else if (event.type == SDL_MOUSEMOTION) {
-				camara.onMouseMoved(event.motion.xrel, event.motion.yrel);
+				if (SDL_GetRelativeMouseMode()) camara.onMouseMoved(event.motion.xrel, event.motion.yrel);
+			}
+			else if (event.type == SDL_MOUSEBUTTONDOWN) {
+				if (event.button.button == SDL_BUTTON_LEFT) {
+					SDL_SetRelativeMouseMode(SDL_TRUE);
+				}
 			}
 		}
 
@@ -261,16 +328,18 @@ int main(int argc, char** argv) {
 		if (b_D) {
 			camara.moveSideways(main_class.delta * camaraSpeed);
 		}
+		if (b_Q) {
+			camara.moveUp(main_class.delta * camaraSpeed);
+		}
+		if (b_E) {
+			camara.moveUp(-main_class.delta * camaraSpeed);
+		}
 		camara.update();
 
 
-		model_rotate = glm::rotate(model_rotate, sinf(main_class.time) * 1 * main_class.delta, glm::vec3(1, 1, 1));
+		model_rotate = glm::rotate(model_rotate,.1F* main_class.delta, glm::vec3(0, 1, 0));
 
 		modelViewProj = camara.GetViewProj() * model_rotate;
-
-
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
 
 		float32 r = (sinf(main_class.time) + 1.0F) / 2.0F;
 		float32 g = (cosf(main_class.time) + 1.0F) / 2.0F;
@@ -282,8 +351,10 @@ int main(int argc, char** argv) {
 
 		vertex_buffer.BIND();
 		index_buffer.BIND();
+		#ifdef TEXTURE_MY
 		GLCALL(glActiveTexture(GL_TEXTURE0));
 		GLCALL(glBindTexture(GL_TEXTURE_2D, textureId));
+#endif
 
 		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation,1,GL_FALSE, &modelViewProj[0][0]));
 		GLCALL(glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0));
@@ -291,9 +362,9 @@ int main(int argc, char** argv) {
 		vertex_buffer.UNBIND();
 	}
 	while (main_class.MainLoop());
-	/*
-	glDeleteTextures (1, &textureId);
-*/
+#ifdef TEXTURE_MY
+	glDeleteTextures(1, &textureId);
+#endif
 	//std::cin.get();
 	return 0;
 }

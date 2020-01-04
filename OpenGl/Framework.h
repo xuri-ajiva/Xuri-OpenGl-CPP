@@ -16,7 +16,6 @@ public:
 	float32 time                   = 0.0F;
 	Uint64  frames                 = 0;
 	//WireFrame
-	//glPolygonMode (GL_FRONT_AND_BACK,GL_LINE);
 
 	bool MainLoop();
 
@@ -75,6 +74,7 @@ inline int MainClass::Init() {
 
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 
+	//glEnable(GL_CULL_FACE);
 	return 0;
 }
 
@@ -86,7 +86,7 @@ inline bool MainClass::MainLoop() {
 	delta                 = float32(counterElapsed) / float32(perf_counter_frequency);
 	Uint32 FPS            = Uint32(float32(perf_counter_frequency) / float32(counterElapsed));
 
-	if (frames % 10 == 0) SDL_SetWindowTitle(window, ("FPS: " + std::to_string(FPS)).c_str());
+	if (frames % 10 == 0) SDL_SetWindowTitle(window, ("FPS: " + std::to_string(FPS) + "  Time: "+std::to_string(time)).c_str() );
 	last_counter = endCounter;
 	frames++;
 	time += delta;

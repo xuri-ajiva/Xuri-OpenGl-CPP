@@ -9,7 +9,7 @@
 class Camera {
 public:
 	Camera(float fov, float width, float height) {
-		procjection = glm::perspective(fov / 2.0F, width / height, .0F, 1000.0F);
+		procjection = glm::perspective(fov / 2.0F, width / height, .1F, 1000.0F);
 		view        = glm::mat4(1.0F);
 		position    = glm::vec3(0.0F);
 		update();
