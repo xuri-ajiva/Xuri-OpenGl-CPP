@@ -16,6 +16,8 @@
     <ClInclude Include="IndexBuffer.h" />
     <ClInclude Include="Framework.h" />
     <ClInclude Include="libs\stb_image.h" />
+    <ClInclude Include="fpsCamera.h" />
+    <ClInclude Include="Camera.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\basic-fragment-shader.glsl.frag">
