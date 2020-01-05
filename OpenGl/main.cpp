@@ -13,11 +13,6 @@
 #include <fstream>
 #include <cmath>
 
-#ifdef TEXTURE_MY
-#define STB_IMAGE_IMPLEMENTATION
-#include "libs/stb_image.h"
-#endif
-
 #include "libs/glm/glm.hpp"
 #include "libs/glm/ext/matrix_transform.hpp"
 #include "libs/glm/ext/matrix_relational.hpp"
@@ -44,89 +39,6 @@
 #include "Framework.h"
 #include "mesh.h"
 
-/*
-Vertex vertices[] = {
-	Vertex {
-		-0.5f, -0.5f, 0.0f,
-		0.0F, 0.0F,
-		1.0f, 0.0f, 0.0f, 1.0f
-	},
-	Vertex {
-		-0.0f, 0.5f, 0.0f,
-		0.0F, 1.0F,
-		0.0f, 1.0f, 0.0f, 1.0f
-	},
-	Vertex {
-		0.5f, -0.5f, 0.0f,
-		1.0F, 0.0F,
-		0.0f, 0.0f, 1.0f, 1.0f
-	}, 
-	Vertex {
-		0.9f, 0.9f, 0.0f,
-		1.0F, 1.0F,
-		1.0f, 0.0f, 0.0f, 1.0f
-	},
-	Vertex {
-		-0.9f, -0.9f, -0.2f,
-		0.0F, 0.0F,
-		0.0f, 0.0f, 1.0f, 1.0f
-	},
-	Vertex {
-		-0.0f, 0.9f, -0.2f,
-		0.0F, 1.0F,
-		1.0f, 0.0f, 0.0f, 1.0f
-	},
-	Vertex {
-		0.9f, -0.9f, -0.2f,
-		1.0F, 0.0F,
-		0.0f, 1.0f, 1.0f, 1.0f
-	},
-	Vertex {//7
-		0.9f, 0.9f, -0.2f,
-		1.0F, 1.0F,
-		1.0f, 0.0f, 0.0f, 1.0f
-	},
-	Vertex {//8
-		-5.0f, 0.0f, -5.0f,
-		0.0F, 0.0F,
-		0.0f, 0.0f, 1.0f, 1.0f
-	},
-	Vertex {//9
-		5.0f, 0.0f, -5.0f,
-		0.0F, 1.0F,
-		1.0f, 0.0f, 0.0f, 1.0f
-	},
-	Vertex {//10
-		5.0f, 0.0f, 5.0f,
-		1.0F, 0.0F,
-		0.0f, 1.0f, 1.0f, 1.0f
-	},
-	Vertex { //11
-		-5.0f, 0.0f, 5.0f,
-		1.0F, 1.0F,
-		1.0f, 0.0f, 0.0f, 1.0f
-	},
-};
-Uint32 numVertices = (sizeof(vertices) / sizeof(*vertices));
-
-
-Uint64 indices [] = {
-	0, 1, 2,
-	//8,9,10,
-	//8,10,11,
-	//4, 1, 6,
-
-	//0, 1, 4,
-	//1, 5, 4,
-	//
-	//1, 2, 5,
-	//2, 5, 6,
-	//
-	//0, 2, 4,
-	//2, 4, 6,
-};
-Uint32 numIndices = (sizeof(indices) / sizeof(*indices));
-*/
 #if _DEBUG
 void              _GLGetError(const char* file, int line, const char* call) {
 	while (GLenum error = glGetError()) {
@@ -146,8 +58,8 @@ const char* fragmentShader = "basic-fragment-shader.glsl.frag";
 
 int main(int argc, char** argv) {
 	std::string modelFile = (DataPos + "tree.bmf");
-	if(argc >=2) {
-		modelFile = argv[1]; 
+	if (argc >= 2) {
+		modelFile = argv[1];
 	}
 	MainClass main_class {};
 
@@ -158,45 +70,41 @@ int main(int argc, char** argv) {
 
 	std::cout << "OpenGl version: " << glGetString(GL_VERSION) << std::endl;
 
-	std::cout << "Shaders: " << DataPos << std::endl
-		<< "	[" << vertexShader << ", " << fragmentShader << "]" << std::endl;
+	std::cout << "Shaders: " << DataPos << std::endl << "	[" << vertexShader << ", " << fragmentShader << "]" << std::endl;
 
 	Shader shader((DataPos + vertexShader).c_str(), (DataPos + fragmentShader).c_str());
 	shader.bind();
-
 	std::cout << "shader initialized PointerID: " << shader.GetShaderID() << std::endl;
 
-	//const int colorUniformLocation = GLCALL(glGetUniformLocation (shader.GetShaderID(), "u_color"));
-	//
-	//if (colorUniformLocation != -1) {
-	//	glUniform4f(colorUniformLocation, 1, 1, 1, 1.0F);
-	//}
+	int       directionLocation = GLCALL(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.direction"));
+	glm::vec3 sunColor          = glm::vec3(1);
+	glm::vec3 sunDirection      = glm::vec3(-1.0F);
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.diffuse"),1,(float*)&sunColor));
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.specular"),1,(float*)&sunColor));
+	sunColor *= 0.4F;
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.ambient"),1,(float*)&sunColor));
 
-#ifdef TEXTURE_MY
-	Int32 textureWidth  = 0;
-	Int32 textureHeight = 0;
-	Int32 bitsPerPixel  = 0;
-	stbi_set_flip_vertically_on_load(true);
-	auto textureBuffer = stbi_load((DataPos + "abstract.jpg").c_str(), &textureWidth, &textureHeight, &bitsPerPixel, 4);
+	glm::vec3 pointColor = glm::vec3(0, 0, 3);
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_point_light.diffuse"),1,(float*)&pointColor));
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_point_light.specular"),1,(float*)&pointColor));
+	pointColor *= 0.2F;
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_point_light.ambient"),1,(float*)&pointColor));
+	GLCALL(glUniform1f(glGetUniformLocation(shader.GetShaderID(), "u_point_light.linear"), 0.027f));
+	GLCALL(glUniform1f(glGetUniformLocation(shader.GetShaderID(), "u_point_light.quadratic"), 0.0028f));
+	glm::vec4 pointLightPosition = glm::vec4(1, 1, 10, 1);
+	int       pointLightLocation = GLCALL(glGetUniformLocation(shader.GetShaderID(), "u_point_light.position"));
 
-	GLuint textureId;
-	GLCALL(glGenTextures(1, &textureId));
-	GLCALL(glBindTexture(GL_TEXTURE_2D, textureId));
-
-	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-
-	GLCALL(
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-			textureBuffer));
-	GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
-
-	if (textureBuffer) {
-		stbi_image_free(textureBuffer);
-	}
-#endif
+	glm::vec3 spotColor = glm::vec3(1,0,0);
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.diffuse"),1,(float*)&spotColor));
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.specular"),1,(float*)&spotColor));
+	spotColor *= 0.1F;
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.ambient"),1,(float*)&spotColor));
+	glm::vec3 spotLightPosition = glm::vec3(0.0F);
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.position"), 1, (float*)&spotLightPosition));
+	spotLightPosition.z = 1.0f;
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.direction"), 1, (float*)&spotLightPosition));
+	GLCALL(glUniform1f( glGetUniformLocation(shader.GetShaderID(), "u_spot_light.innerCone"), 0.99f));
+	GLCALL(glUniform1f( glGetUniformLocation(shader.GetShaderID(), "u_spot_light.outerCone"), 0.98f));
 
 	Model renderModle;
 	renderModle.Init(modelFile.c_str(), &shader);
@@ -278,6 +186,10 @@ int main(int argc, char** argv) {
 				if (event.button.button == SDL_BUTTON_LEFT) {
 					SDL_SetRelativeMouseMode(SDL_TRUE);
 				}
+			}else if(event.type == SDL_WINDOWEVENT) {
+				int w, h;
+				SDL_GetWindowSize(main_class.window,&w,&h);
+				glViewport(0,0,w,h);
 			}
 		}
 
@@ -301,10 +213,20 @@ int main(int argc, char** argv) {
 		}
 
 		camera.update();
-		model_rotate           = glm::rotate(model_rotate, 1.0f * main_class.delta, glm::vec3(0, 1, 0));
+		//model_rotate           = glm::rotate(model_rotate, 1.0f * main_class.delta, glm::vec3(0, 1, 0));
 		modelViewProj          = camera.GetViewProj() * model_rotate;
 		glm::mat4 modelView    = camera.GetView() * model_rotate;
 		glm::mat4 invModelView = glm::transpose(glm::inverse(modelView));
+
+		glm::vec4 transformedSunDirection = glm::transpose(glm::inverse(camera.GetView())) * glm::vec4(
+			sunDirection, 1.0F);
+		glUniform3fv(directionLocation, 1, (float*)&transformedSunDirection);
+
+		glm::mat4 pointLightMatrix              = glm::rotate(glm::mat4(1), - main_class.delta, {0, 1, 0});
+		pointLightPosition                      = pointLightPosition * pointLightMatrix;
+		glm::vec3 transformedPointLightPosition = (glm::vec3)(camera.GetView() * (pointLightPosition));
+		glUniform3fv(pointLightLocation, 1, (float*)&transformedPointLightPosition);
+
 
 		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
 		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
@@ -312,9 +234,6 @@ int main(int argc, char** argv) {
 		renderModle.Render();
 	}
 	while (main_class.MainLoop());
-#ifdef TEXTURE_MY
-	glDeleteTextures(1, &textureId);
-#endif
 	//std::cin.get();
 	return 0;
 }

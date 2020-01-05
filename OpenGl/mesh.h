@@ -42,10 +42,10 @@ public:
 		indexBuffer = new IndexBuffer(indices.data(), numIndices, sizeof(indices[0]));
 		std::cout << "indexBuffer initialized PointerID: " << indexBuffer->GET_BUFFER_ID() << std::endl;
 
-		diffuseLocation   = glGetUniformLocation(shader->GetShaderID(), "u_diffuse");
-		specularLocation  = glGetUniformLocation(shader->GetShaderID(), "u_specular");
-		emissiveLocation  = glGetUniformLocation(shader->GetShaderID(), "u_emissive");
-		shininessLocation = glGetUniformLocation(shader->GetShaderID(), "u_shininess");
+		diffuseLocation   = glGetUniformLocation(shader->GetShaderID(), "u_material.diffuse");
+		specularLocation  = glGetUniformLocation(shader->GetShaderID(), "u_material.specular");
+		emissiveLocation  = glGetUniformLocation(shader->GetShaderID(), "u_material.emissive");
+		shininessLocation = glGetUniformLocation(shader->GetShaderID(), "u_material.shininess");
 	}
 
 	~Mesh() {

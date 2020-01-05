@@ -27,8 +27,8 @@ void GLAPIENTRY openGLDebugCallback(GLenum        source, GLenum type, GLuint id
                                     const void*   userParam) {
 	//if(serverity == GL_DEBUG_SEVERITY_HIGH)
 
-	std::cout << "[Open Info: {severity: " << severity << ", source: " << source <<
-		", type: " << type << ", id: " << id << "}]:" << std::endl << "	" << message << std::endl;
+	std::cout << "[Open Info: {severity: " << severity << ", source: " << source << ", type: " << type << ", id: " << id << "}]:" << std::endl << "	"
+		<< message << std::endl;
 };
 #endif
 
@@ -49,12 +49,9 @@ inline int MainClass::Init() {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 #endif
 
-	Uint32 flags = SDL_WINDOW_OPENGL;// | SDL_WINDOW_RESIZABLE;
+	Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 
-	window = SDL_CreateWindow("Xuri´s OpenGL C++",
-	                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-	                          1000, 800,
-	                          flags);
+	window = SDL_CreateWindow("Xuri´s OpenGL C++", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 800, flags);
 
 	SDL_GLContext glContext = SDL_GL_CreateContext(window); //SDL_SetWindowResizable(window, SDL_TRUE);
 	SDL_GL_SetSwapInterval(1);
@@ -86,7 +83,7 @@ inline bool MainClass::MainLoop() {
 	delta                 = float32(counterElapsed) / float32(perf_counter_frequency);
 	Uint32 FPS            = Uint32(float32(perf_counter_frequency) / float32(counterElapsed));
 
-	if (frames % 10 == 0) SDL_SetWindowTitle(window, ("FPS: " + std::to_string(FPS) + "  Time: "+std::to_string(time)).c_str() );
+	if (frames % 10 == 0) SDL_SetWindowTitle(window, ("FPS: " + std::to_string(FPS) + "  Time: " + std::to_string(time)).c_str());
 	last_counter = endCounter;
 	frames++;
 	time += delta;
