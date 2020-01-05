@@ -6,13 +6,10 @@
 #include <string>
 #include <fstream>
 #include <C:/Program Files/Assimp/include/assimp/Importer.hpp>
-#include "C:/Program Files/Assimp/include/assimp/Importer.hpp"
 #include <C:/Program Files/Assimp/include/assimp/scene.h>
 #include <C:/Program Files/Assimp/include/assimp/postprocess.h>
 
-#ifdef _WIN32
-#pragma comment(lib, "assimp.lib")
-#endif
+#pragma comment(lib, "C:/Program Files/Assimp/lib/x86/assimp.lib")
 
 struct Position {
 	float x, y, z;
@@ -113,38 +110,39 @@ char* getFilename(char* filename) {
 	return lastSlash;
 }
 
-void              processMaterials(const aiScene* scene) {
+void processMaterials(const aiScene* scene) {
+
 	for (uint32_t i = 0; i < scene->mNumMaterials; i++) {
 		Material    mat      = {};
 		aiMaterial* material = scene->mMaterials[i];
 
-		aiColor3D diffuse(0.0f, 0.0f, 0.0f);
+		aiColor3D diffuse(0.1f, 0.1f, 0.1f);
 		if (AI_SUCCESS != material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse)) {
-			// No diffuse color
+			std::cout << "[" << i << "]: No diffuse color!" << std::endl;
 		}
 		mat.diffuse = {diffuse.r, diffuse.g, diffuse.b};
 
 		aiColor3D specular(0.0f, 0.0f, 0.0f);
 		if (AI_SUCCESS != material->Get(AI_MATKEY_COLOR_SPECULAR, specular)) {
-			// No specular color
+			std::cout << "[" << i << "]: No specular color!" << std::endl;
 		}
 		mat.specular = {specular.r, specular.g, specular.b};
 
 		aiColor3D emissive(0.0f, 0.0f, 0.0f);
 		if (AI_SUCCESS != material->Get(AI_MATKEY_COLOR_EMISSIVE, emissive)) {
-			// No emissive color
+			std::cout << "[" << i << "]: No emissive color!" << std::endl;
 		}
 		mat.emissive = {emissive.r, emissive.g, emissive.b};
 
 		float shininess = 0.0f;
 		if (AI_SUCCESS != material->Get(AI_MATKEY_SHININESS, shininess)) {
-			// No shininess
+			std::cout << "[" << i << "]: No shininess!" << std::endl;
 		}
 		mat.shininess = shininess;
 
 		float shininessStrength = 1.0f;
 		if (AI_SUCCESS != material->Get(AI_MATKEY_SHININESS_STRENGTH, shininessStrength)) {
-			// No shininessStrength
+			std::cout << "[" << i << "]: No shininessStrength!" << std::endl;
 		}
 		mat.specular.x *= shininessStrength;
 		mat.specular.y *= shininessStrength;
@@ -162,6 +160,9 @@ void              processMaterials(const aiScene* scene) {
 }
 
 int main(int argc, char** argv) {
+	std::string directory = std::string(argv[argc - 1]).substr(0, (std::string(argv[argc - 1])).find_last_of("\\"));
+	std::cout << "output Directory: " << directory << std::endl;
+	int64_t hf = 0;
 	if (argc <= 0) {
 		return 1;
 	}
@@ -187,11 +188,11 @@ int main(int argc, char** argv) {
 
 	std::string filename                 = std::string(getFilename(argv[argc - 1]));
 	std::string filenameWithoutExtension = filename.substr(0, filename.find_last_of('.'));
-	std::string outputFilename           = filenameWithoutExtension + ".bmf";
+	std::string outputFilename           =directory+ "\\"+ filenameWithoutExtension + ".bmf";
 
 	std::ofstream output(outputFilename, std::ios::out | std::ios::binary);
 	std::cout << "Writing bmf file..." << std::endl;
-
+	std::cout << "Writing Materials : " << std::endl;
 	// Materials
 	uint64_t numMaterials = materials.size();
 	output.write((char*)&numMaterials, sizeof(uint64_t));
@@ -209,8 +210,11 @@ int main(int argc, char** argv) {
 		output.write((char*)&normalMapNameLength, sizeof(uint64_t));
 		output.write(pathPrefix, 7);
 		output.write((char*)&material.normalMapName.data, material.normalMapName.length);
+
+		std::cout << "Writing Materials : " << (hf++) << std::endl;
 	}
 
+	std::cout << "Writing Meshes : " << std::endl;
 	// Meshes
 	uint64_t numMeshes = meshes.size();
 	output.write((char*)&numMeshes, sizeof(uint64_t));
@@ -241,7 +245,15 @@ int main(int argc, char** argv) {
 		for (uint64_t i = 0; i < numIndices; i++) {
 			output.write((char*)&mesh.indices[i], sizeof(uint32_t));
 		}
+		std::cout << "Writing Meshes : " << (hf++) << std::endl;
 	}
 
 	output.close();
+	std::cout << "Finished!" << std::endl;
+
+	#ifdef _WIN32
+	system("pause");
+	#else
+	std::cin.get();
+	#endif
 }

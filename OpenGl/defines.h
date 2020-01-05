@@ -9,7 +9,7 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <chrono>
-
+#include "libs/glm/glm.hpp"
 
 typedef int8_t  Int8;
 typedef int16_t Int16;
@@ -25,18 +25,6 @@ typedef float  float32;
 typedef double float64;
 
 struct Vertex {
-	// Position
-	float32 x;
-	float32 y;
-	float32 z;
-
-	// Texture
-	float32 u;
-	float32 v;
-
-	// Color
-	float32 r;
-	float32 g;
-	float32 b;
-	float32 a;
+	glm::vec3 position;
+	glm::vec3 normal;
 };

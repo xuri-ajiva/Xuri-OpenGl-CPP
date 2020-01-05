@@ -1,6 +1,6 @@
 #include "defines.h"
 
-#define TEXTURE_MY
+//#define TEXTURE_MY
 
 #include <ctime>
 #include <iomanip>
@@ -37,11 +37,12 @@
 
 #include "VertexBuffer.h"
 #include "Shader.h"
-#include  "IndexBuffer.h"
+#include "IndexBuffer.h"
 #include "Camera.h"
 #include "fpsCamera.h"
 
 #include "Framework.h"
+#include "mesh.h"
 
 /*
 Vertex vertices[] = {
@@ -139,11 +140,15 @@ void              _GLGetError(const char* file, int line, const char* call) {
 #define GLCALL(call) call
 #endif
 
-std::string DataPos        = "Shaders/";
+std::string DataPos        = "data/";
 const char* vertexShader   = "basic-vertex-shader.glsl.vert";
 const char* fragmentShader = "basic-fragment-shader.glsl.frag";
 
 int main(int argc, char** argv) {
+	std::string modelFile = (DataPos + "tree.bmf");
+	if(argc >=2) {
+		modelFile = argv[1]; 
+	}
 	MainClass main_class {};
 
 	const int init_err = main_class.Init();
@@ -156,14 +161,16 @@ int main(int argc, char** argv) {
 	std::cout << "Shaders: " << DataPos << std::endl
 		<< "	[" << vertexShader << ", " << fragmentShader << "]" << std::endl;
 
-	const Shader shader((DataPos + vertexShader).c_str(), (DataPos + fragmentShader).c_str());
+	Shader shader((DataPos + vertexShader).c_str(), (DataPos + fragmentShader).c_str());
 	shader.bind();
 
-	const int colorUniformLocation = GLCALL(glGetUniformLocation (shader.GetShaderID(), "u_color"));
+	std::cout << "shader initialized PointerID: " << shader.GetShaderID() << std::endl;
 
-	if (colorUniformLocation != -1) {
-		glUniform4f(colorUniformLocation, 1, 1, 1, 1.0F);
-	}
+	//const int colorUniformLocation = GLCALL(glGetUniformLocation (shader.GetShaderID(), "u_color"));
+	//
+	//if (colorUniformLocation != -1) {
+	//	glUniform4f(colorUniformLocation, 1, 1, 1, 1.0F);
+	//}
 
 #ifdef TEXTURE_MY
 	Int32 textureWidth  = 0;
@@ -191,60 +198,21 @@ int main(int argc, char** argv) {
 	}
 #endif
 
-	std::vector<Vertex> vertices;
-	uint64_t            numVertices = 0;
-
-	std::vector<uint32_t> indices;
-	uint64_t              numIndices = 0;
-
-	std::ifstream input = std::ifstream((DataPos + "monkey.bmf").c_str(), std::ios::in | std::ios::binary);
-	if (!input.is_open()) {
-		std::cout << "Error reading model file" << std::endl;
-		return 1;
-	}
-
-	input.read((char*)&numVertices, sizeof(Uint64));
-	input.read((char*)&numIndices, sizeof(Uint64));
-
-	for (Uint64 i = 0; i < numVertices; i++) {
-		Vertex vertex;
-		input.read((char*)&vertex.x, sizeof(float));
-		input.read((char*)&vertex.y, sizeof(float));
-		input.read((char*)&vertex.z, sizeof(float));
-		vertex.u = abs(vertex.x);
-		vertex.v = abs(vertex.y);
-		vertex.r = vertex.x;
-		vertex.g = vertex.y;
-		vertex.b = vertex.z;
-		vertex.a = 1.0F;
-		vertices.push_back(vertex);
-	}
-	for (Uint64 i = 0; i < numIndices; i++) {
-		Uint32 index;
-		input.read((char*)&index, sizeof(Uint32));
-		indices.push_back(index);
-	}
-
-	std::cout << "shader initialized PointerID: " << shader.GetShaderID() << std::endl;
-
-	VertexBuffer vertex_buffer(vertices.data(), numVertices);
-	std::cout << "vertexBuffer initialized PointerID: " << vertex_buffer.GET_BUFFER_ID() << std::endl;
-	vertex_buffer.UNBIND();
-
-	IndexBuffer index_buffer(indices.data(), numIndices, sizeof(indices[0]));
-	std::cout << "indexBuffer initialized PointerID: " << vertex_buffer.GET_BUFFER_ID() << std::endl;
-	index_buffer.UNBIND();
+	Model renderModle;
+	renderModle.Init(modelFile.c_str(), &shader);
 
 	auto model_rotate = glm::mat4(1.0F);
-	model_rotate      = scale(model_rotate, glm::vec3(3.0F));
+	model_rotate      = scale(model_rotate, glm::vec3(.1F));
 
-	FPSCamera camara(90.0F, 1000, 800);
-	camara.Translate(glm::vec3(0, 0, 5.0f));
-	camara.update();
+	FPSCamera camera(90.0F, 1000, 800);
+	camera.Translate(glm::vec3(0, 0, 5.0f));
+	camera.update();
 
-	auto modelViewProj = camara.GetViewProj() * model_rotate;
+	auto modelViewProj = camera.GetViewProj() * model_rotate;
 
-	const int modelViewProjMatrixLocation = GLCALL(glGetUniformLocation(shader.GetShaderID(), "u_modelViewProj"));
+	int modelViewProjMatrixLocation = glGetUniformLocation(shader.GetShaderID(), "u_modelViewProj");
+	int modelViewLocation           = glGetUniformLocation(shader.GetShaderID(), "u_modelView");
+	int invModelViewLocation        = glGetUniformLocation(shader.GetShaderID(), "u_invModelView");
 
 	bool b_W = false;
 	bool b_S = false;
@@ -256,10 +224,8 @@ int main(int argc, char** argv) {
 	//glPolygonMode (GL_FRONT_AND_BACK,GL_LINE);
 
 	float32 camaraSpeed = 6.0F;
-	
-	//GLCALL(glEnable(GL_DEPTH_TEST));
+
 	GLCALL(glEnable(GL_DEPTH_TEST));
-	//glDepthFunc(GL_EQUAL);
 	do {
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		GLCALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
@@ -287,7 +253,7 @@ int main(int argc, char** argv) {
 						break;
 					case SDLK_e: b_E = state;
 						break;
-					case SDLK_F1: if (state) camara.SetFreeCam(!camara.GetFreeCam());
+					case SDLK_F1: if (state) camera.SetFreeCam(!camera.GetFreeCam());
 						break;
 					case SDLK_F2: if (state) SDL_SetRelativeMouseMode(SDL_FALSE);
 						break;
@@ -296,7 +262,7 @@ int main(int argc, char** argv) {
 				if (event.key.keysym.mod & KMOD_LSHIFT) {
 					camaraSpeed = 14.0;
 				}
-				else if(event.key.keysym.mod & KMOD_LCTRL) {
+				else if (event.key.keysym.mod & KMOD_LCTRL) {
 					camaraSpeed = 2.0;
 				}
 				else {
@@ -306,7 +272,7 @@ int main(int argc, char** argv) {
 				//if (event.key.keysym.sym == SDLK_p && event.key.keysym.mod & KMOD_LALT) { }
 			}
 			else if (event.type == SDL_MOUSEMOTION) {
-				if (SDL_GetRelativeMouseMode()) camara.onMouseMoved(event.motion.xrel, event.motion.yrel);
+				if (SDL_GetRelativeMouseMode()) camera.onMouseMoved(event.motion.xrel, event.motion.yrel);
 			}
 			else if (event.type == SDL_MOUSEBUTTONDOWN) {
 				if (event.button.button == SDL_BUTTON_LEFT) {
@@ -315,51 +281,35 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		glm::vec3 translat = glm::vec3(0);
 		if (b_W) {
-			camara.moveFront(main_class.delta * camaraSpeed);
+			camera.moveFront(main_class.delta * camaraSpeed);
 		}
 		if (b_S) {
-			camara.moveFront(main_class.delta * -camaraSpeed);
+			camera.moveFront(main_class.delta * -camaraSpeed);
 		}
 		if (b_A) {
-			camara.moveSideways(main_class.delta * -camaraSpeed);
+			camera.moveSideways(main_class.delta * -camaraSpeed);
 		}
 		if (b_D) {
-			camara.moveSideways(main_class.delta * camaraSpeed);
+			camera.moveSideways(main_class.delta * camaraSpeed);
 		}
 		if (b_Q) {
-			camara.moveUp(main_class.delta * camaraSpeed);
+			camera.moveUp(main_class.delta * camaraSpeed);
 		}
 		if (b_E) {
-			camara.moveUp(-main_class.delta * camaraSpeed);
-		}
-		camara.update();
-
-
-		model_rotate = glm::rotate(model_rotate,.1F* main_class.delta, glm::vec3(0, 1, 0));
-
-		modelViewProj = camara.GetViewProj() * model_rotate;
-
-		float32 r = (sinf(main_class.time) + 1.0F) / 2.0F;
-		float32 g = (cosf(main_class.time) + 1.0F) / 2.0F;
-		float32 b = ((-sinf(main_class.time)) + 1.0F) / 2.0F;
-
-		if (colorUniformLocation != -1) {
-			glUniform4f(colorUniformLocation, r, g, b, 1.0F);
+			camera.moveUp(-main_class.delta * camaraSpeed);
 		}
 
-		vertex_buffer.BIND();
-		index_buffer.BIND();
-		#ifdef TEXTURE_MY
-		GLCALL(glActiveTexture(GL_TEXTURE0));
-		GLCALL(glBindTexture(GL_TEXTURE_2D, textureId));
-#endif
+		camera.update();
+		model_rotate           = glm::rotate(model_rotate, 1.0f * main_class.delta, glm::vec3(0, 1, 0));
+		modelViewProj          = camera.GetViewProj() * model_rotate;
+		glm::mat4 modelView    = camera.GetView() * model_rotate;
+		glm::mat4 invModelView = glm::transpose(glm::inverse(modelView));
 
-		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation,1,GL_FALSE, &modelViewProj[0][0]));
-		GLCALL(glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0));
-		index_buffer.UNBIND();
-		vertex_buffer.UNBIND();
+		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
+		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
+		GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
+		renderModle.Render();
 	}
 	while (main_class.MainLoop());
 #ifdef TEXTURE_MY

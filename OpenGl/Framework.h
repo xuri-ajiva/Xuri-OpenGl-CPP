@@ -49,7 +49,7 @@ inline int MainClass::Init() {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 #endif
 
-	Uint32 flags = SDL_WINDOW_OPENGL;// | SDL_WINDOW_FULLSCREEN_DESKTOP;
+	Uint32 flags = SDL_WINDOW_OPENGL;// | SDL_WINDOW_RESIZABLE;
 
 	window = SDL_CreateWindow("Xuri´s OpenGL C++",
 	                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,

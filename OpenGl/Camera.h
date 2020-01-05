@@ -3,7 +3,6 @@
 #include "defines.h"
 
 #include "libs/glm/glm.hpp"
-#include "libs/glm/ext/matrix_transform.hpp"
 #include "libs/glm/gtc/matrix_transform.hpp"
 
 class Camera {
@@ -15,10 +14,6 @@ public:
 		update();
 	}
 
-	glm::mat4 GetViewProj() {
-		return viewProj;
-	}
-
 	virtual void update() {
 		viewProj = procjection * view;
 	}
@@ -26,6 +21,22 @@ public:
 	virtual void Translate(glm::vec3 v) {
 		position += v;
 		view = glm::translate(view, v * -1.0F);
+	}
+
+	glm::vec3 GetPosition() {
+		return position;
+	}
+
+	glm::mat4 GetProcjection() {
+		return procjection;
+	}
+
+	glm::mat4 GetView() {
+		return view;
+	}
+
+	glm::mat4 GetViewProj() {
+		return viewProj;
 	}
 
 protected:

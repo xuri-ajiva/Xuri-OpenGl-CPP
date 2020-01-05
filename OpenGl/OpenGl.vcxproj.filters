@@ -18,6 +18,7 @@
     <ClInclude Include="libs\stb_image.h" />
     <ClInclude Include="fpsCamera.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="mesh.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\basic-fragment-shader.glsl.frag">
