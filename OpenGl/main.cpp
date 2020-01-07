@@ -24,6 +24,10 @@
     #include <unistd.h>
 #endif // _WIN32
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "libs/stb_image.h"
+#undef STB_IMAGE_IMPLEMENTATION
+
 #ifdef _WIN32
 #pragma comment(lib, "SDL2.lib")
 #pragma comment(lib, "glew32s.lib")
@@ -52,12 +56,13 @@ void              _GLGetError(const char* file, int line, const char* call) {
 #define GLCALL(call) call
 #endif
 
-std::string DataPos        = "data/";
+std::string ShaderPos      = "shaders/";
+std::string ModelsPos      = "models/";
 const char* vertexShader   = "basic-vertex-shader.glsl.vert";
 const char* fragmentShader = "basic-fragment-shader.glsl.frag";
 
 int main(int argc, char** argv) {
-	std::string modelFile = (DataPos + "tree.bmf");
+	std::string modelFile = (ModelsPos + "fern.bmf");
 	if (argc >= 2) {
 		modelFile = argv[1];
 	}
@@ -70,9 +75,9 @@ int main(int argc, char** argv) {
 
 	std::cout << "OpenGl version: " << glGetString(GL_VERSION) << std::endl;
 
-	std::cout << "Shaders: " << DataPos << std::endl << "	[" << vertexShader << ", " << fragmentShader << "]" << std::endl;
+	std::cout << "Shaders: " << ShaderPos << std::endl << "	[" << vertexShader << ", " << fragmentShader << "]" << std::endl;
 
-	Shader shader((DataPos + vertexShader).c_str(), (DataPos + fragmentShader).c_str());
+	Shader shader((ShaderPos + vertexShader).c_str(), (ShaderPos + fragmentShader).c_str());
 	shader.bind();
 	std::cout << "shader initialized PointerID: " << shader.GetShaderID() << std::endl;
 
@@ -85,6 +90,7 @@ int main(int argc, char** argv) {
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.ambient"),1,(float*)&sunColor));
 
 	glm::vec3 pointColor = glm::vec3(0, 0, 3);
+	pointColor *= 0;
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_point_light.diffuse"),1,(float*)&pointColor));
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_point_light.specular"),1,(float*)&pointColor));
 	pointColor *= 0.2F;
@@ -94,7 +100,8 @@ int main(int argc, char** argv) {
 	glm::vec4 pointLightPosition = glm::vec4(1, 1, 10, 1);
 	int       pointLightLocation = GLCALL(glGetUniformLocation(shader.GetShaderID(), "u_point_light.position"));
 
-	glm::vec3 spotColor = glm::vec3(1,0,0);
+	glm::vec3 spotColor = glm::vec3(2);
+	//spotColor *= 0;
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.diffuse"),1,(float*)&spotColor));
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.specular"),1,(float*)&spotColor));
 	spotColor *= 0.1F;
@@ -186,10 +193,11 @@ int main(int argc, char** argv) {
 				if (event.button.button == SDL_BUTTON_LEFT) {
 					SDL_SetRelativeMouseMode(SDL_TRUE);
 				}
-			}else if(event.type == SDL_WINDOWEVENT) {
+			}
+			else if (event.type == SDL_WINDOWEVENT) {
 				int w, h;
-				SDL_GetWindowSize(main_class.window,&w,&h);
-				glViewport(0,0,w,h);
+				SDL_GetWindowSize(main_class.window, &w, &h);
+				glViewport(0, 0, w, h);
 			}
 		}
 
