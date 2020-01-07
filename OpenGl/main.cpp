@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 	int       pointLightLocation = GLCALL(glGetUniformLocation(shader.GetShaderID(), "u_point_light.position"));
 
 	glm::vec3 spotColor = glm::vec3(2);
-	//spotColor *= 0;
+	spotColor *= 0;
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.diffuse"),1,(float*)&spotColor));
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.specular"),1,(float*)&spotColor));
 	spotColor *= 0.1F;
@@ -199,6 +199,9 @@ int main(int argc, char** argv) {
 				SDL_GetWindowSize(main_class.window, &w, &h);
 				glViewport(0, 0, w, h);
 			}
+			//else if (event.type == SDL_WINDOWEVENT_FOCUS_LOST) {
+			//	SDL_SetRelativeMouseMode(SDL_FALSE);
+			//}
 		}
 
 		if (b_W) {
@@ -221,7 +224,7 @@ int main(int argc, char** argv) {
 		}
 
 		camera.update();
-		//model_rotate           = glm::rotate(model_rotate, 1.0f * main_class.delta, glm::vec3(0, 1, 0));
+		model_rotate           = glm::rotate(model_rotate, .1f * main_class.delta, glm::vec3(0, 1, 0));
 		modelViewProj          = camera.GetViewProj() * model_rotate;
 		glm::mat4 modelView    = camera.GetView() * model_rotate;
 		glm::mat4 invModelView = glm::transpose(glm::inverse(modelView));

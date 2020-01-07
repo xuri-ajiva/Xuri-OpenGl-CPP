@@ -10,7 +10,6 @@
 #include <C:/Program Files/Assimp/include/assimp/postprocess.h>
 
 #pragma comment(lib, "C:/Program Files/Assimp/lib/x86/assimp.lib")
-
 struct Position {
 	float x, y, z;
 };
@@ -173,11 +172,9 @@ int main(int argc, char** argv) {
 
 	Assimp::Importer importer;
 	const aiScene*   scene = importer.ReadFile(argv[argc - 1],
-	                                           aiProcess_PreTransformVertices | aiProcess_Triangulate |
-	                                           aiProcess_GenNormals | aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph
-	                                           |
-	                                           aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality |
-	                                           aiProcess_CalcTangentSpace);
+	                                           aiProcess_PreTransformVertices | aiProcess_Triangulate | aiProcess_GenNormals |
+	                                           aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph | aiProcess_JoinIdenticalVertices |
+	                                           aiProcess_ImproveCacheLocality | aiProcess_CalcTangentSpace);
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE, !scene->mRootNode) {
 		std::cout << "Error while loading model with assimp: " << importer.GetErrorString() << std::endl;
 		return 1;
@@ -188,7 +185,7 @@ int main(int argc, char** argv) {
 
 	std::string filename                 = std::string(getFilename(argv[argc - 1]));
 	std::string filenameWithoutExtension = filename.substr(0, filename.find_last_of('.'));
-	std::string outputFilename           =directory+ "\\"+ filenameWithoutExtension + ".bmf";
+	std::string outputFilename           = directory + "\\" + filenameWithoutExtension + ".bmf";
 
 	std::ofstream output(outputFilename, std::ios::out | std::ios::binary);
 	std::cout << "Writing bmf file..." << std::endl;

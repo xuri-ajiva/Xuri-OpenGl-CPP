@@ -37,11 +37,12 @@ public:
 		indexBuffer = new IndexBuffer(indices.data(), numIndices, sizeof(indices[0]));
 		std::cout << "indexBuffer initialized PointerID: " << indexBuffer->GET_BUFFER_ID() << std::endl;
 
-		diffuseLocation   = glGetUniformLocation(shader->GetShaderID(), "u_material.diffuse");
-		specularLocation  = glGetUniformLocation(shader->GetShaderID(), "u_material.specular");
-		emissiveLocation  = glGetUniformLocation(shader->GetShaderID(), "u_material.emissive");
-		shininessLocation = glGetUniformLocation(shader->GetShaderID(), "u_material.shininess");
+		diffuseLocation    = glGetUniformLocation(shader->GetShaderID(), "u_material.diffuse");
+		specularLocation   = glGetUniformLocation(shader->GetShaderID(), "u_material.specular");
+		emissiveLocation   = glGetUniformLocation(shader->GetShaderID(), "u_material.emissive");
+		shininessLocation  = glGetUniformLocation(shader->GetShaderID(), "u_material.shininess");
 		diffuseMapLocation = glGetUniformLocation(shader->GetShaderID(), "u_diffuse_map");
+		normalMapLocation  = glGetUniformLocation(shader->GetShaderID(), "u_normal_map");
 	}
 
 	~Mesh() {
@@ -55,9 +56,13 @@ public:
 		glUniform3fv(diffuseLocation, 1, (float*)&material.material.diffuse.x);
 		glUniform3fv(specularLocation, 1, (float*)&material.material.specular.x);
 		glUniform3fv(emissiveLocation, 1, (float*)&material.material.emissive.x);
-		glUniform1f(shininessLocation, material.material.shininess);		
-        glBindTexture(GL_TEXTURE_2D, material.diffuseMap);
-        glUniform1i(diffuseMapLocation, 0);
+		glUniform1f(shininessLocation, material.material.shininess);
+		glBindTexture(GL_TEXTURE_2D, material.diffuseMap);
+		glUniform1i(diffuseMapLocation, 0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, material.normalMap);
+		glActiveTexture(GL_TEXTURE0);
+		glUniform1i(normalMapLocation, 1);
 		glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0);
 		//vertexBuffer->UNBIND();
 		//indexBuffer->UNBIND();
@@ -74,6 +79,7 @@ private:
 	int           emissiveLocation;
 	int           shininessLocation;
 	int           diffuseMapLocation;
+	int           normalMapLocation;
 };
 
 class Model {
@@ -176,6 +182,9 @@ public:
 				input.read((char*)&vertex.normal.x, sizeof(float));
 				input.read((char*)&vertex.normal.y, sizeof(float));
 				input.read((char*)&vertex.normal.z, sizeof(float));
+				input.read((char*)&vertex.tangent.x, sizeof(float));
+				input.read((char*)&vertex.tangent.y, sizeof(float));
+				input.read((char*)&vertex.tangent.z, sizeof(float));
 				input.read((char*)&vertex.textureCord.x, sizeof(float));
 				input.read((char*)&vertex.textureCord.y, sizeof(float));
 				vertices.push_back(vertex);
