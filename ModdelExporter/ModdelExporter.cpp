@@ -201,12 +201,18 @@ int main(int argc, char** argv) {
 		output.write((char*)&diffuesMapNameLength, sizeof(uint64_t));
 		output.write(pathPrefix, 7);
 		output.write((char*)&material.diffuseMapName.data, material.diffuseMapName.length);
-
+		
 		// Normal map
+		#if USENORMAL
 		uint64_t normalMapNameLength = material.normalMapName.length + 7;
+		#else
+		uint64_t normalMapNameLength = 0;
+		#endif
 		output.write((char*)&normalMapNameLength, sizeof(uint64_t));
+		#if USENORMAL
 		output.write(pathPrefix, 7);
 		output.write((char*)&material.normalMapName.data, material.normalMapName.length);
+		#endif
 
 		std::cout << "Writing Materials : " << (hf++) << std::endl;
 	}
@@ -232,9 +238,9 @@ int main(int argc, char** argv) {
 			output.write((char*)&mesh.normals[i].y, sizeof(float));
 			output.write((char*)&mesh.normals[i].z, sizeof(float));
 
-			output.write((char*)&mesh.tangents[i].x, sizeof(float));
-			output.write((char*)&mesh.tangents[i].y, sizeof(float));
-			output.write((char*)&mesh.tangents[i].z, sizeof(float));
+			//output.write((char*)&mesh.tangents[i].x, sizeof(float));
+			//output.write((char*)&mesh.tangents[i].y, sizeof(float));
+			//output.write((char*)&mesh.tangents[i].z, sizeof(float));
 
 			output.write((char*)&mesh.uvs[i].x, sizeof(float));
 			output.write((char*)&mesh.uvs[i].y, sizeof(float));

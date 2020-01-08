@@ -113,17 +113,40 @@ int main(int argc, char** argv) {
 	GLCALL(glUniform1f( glGetUniformLocation(shader.GetShaderID(), "u_spot_light.innerCone"), 0.99f));
 	GLCALL(glUniform1f( glGetUniformLocation(shader.GetShaderID(), "u_spot_light.outerCone"), 0.98f));
 
-	Model renderModle;
-	renderModle.Init(modelFile.c_str(), &shader);
+	Model renderModle1(modelFile.c_str(), &shader);
+	Model renderModle2(modelFile.c_str(), &shader);
+	Model renderModle3(modelFile.c_str(), &shader);
+	Model renderModle4(modelFile.c_str(), &shader);
+	renderModle1.add      = glm::vec3(0, 0, -400);
+	renderModle2.add      = glm::vec3(0, 0, -200);
+	renderModle3.add      = glm::vec3(0, 0, 200);
+	renderModle4.add      = glm::vec3(0, 0, 400);
+	renderModle1.multyply = glm::vec3(.03);
+	renderModle2.multyply = glm::vec3(.03);
+	renderModle3.multyply = glm::vec3(.03);
+	renderModle4.multyply = glm::vec3(.03);
+	renderModle1.Init();
+	renderModle2.Init();
+	renderModle3.Init();
+	renderModle4.Init();
 
-	auto model_rotate = glm::mat4(1.0F);
-	model_rotate      = scale(model_rotate, glm::vec3(.1F));
+	auto model_rotate1 = glm::mat4(1.0F);
+	auto model_rotate2 = glm::mat4(1.0F);
+	auto model_rotate3 = glm::mat4(1.0F);
+	auto model_rotate4 = glm::mat4(1.0F);
+
+	model_rotate1 = glm::scale(model_rotate1, glm::vec3(.2));
+	model_rotate2 = glm::scale(model_rotate2, glm::vec3(.2));
+	model_rotate3 = glm::scale(model_rotate3, glm::vec3(.2));
+	model_rotate4 = glm::scale(model_rotate4, glm::vec3(.2));
+
+	//model_rotate      = scale(model_rotate, glm::vec3(.1F));
 
 	FPSCamera camera(90.0F, 1000, 800);
 	camera.Translate(glm::vec3(0, 0, 5.0f));
 	camera.update();
 
-	auto modelViewProj = camera.GetViewProj() * model_rotate;
+	auto modelViewProj = camera.GetViewProj() * model_rotate1;
 
 	int modelViewProjMatrixLocation = glGetUniformLocation(shader.GetShaderID(), "u_modelViewProj");
 	int modelViewLocation           = glGetUniformLocation(shader.GetShaderID(), "u_modelView");
@@ -224,9 +247,8 @@ int main(int argc, char** argv) {
 		}
 
 		camera.update();
-		model_rotate           = glm::rotate(model_rotate, .1f * main_class.delta, glm::vec3(0, 1, 0));
-		modelViewProj          = camera.GetViewProj() * model_rotate;
-		glm::mat4 modelView    = camera.GetView() * model_rotate;
+		modelViewProj          = camera.GetViewProj() * model_rotate1;
+		glm::mat4 modelView    = camera.GetView() * model_rotate1;
 		glm::mat4 invModelView = glm::transpose(glm::inverse(modelView));
 
 		glm::vec4 transformedSunDirection = glm::transpose(glm::inverse(camera.GetView())) * glm::vec4(
@@ -242,7 +264,48 @@ int main(int argc, char** argv) {
 		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
 		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
 		GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
-		renderModle.Render();
+
+		///
+
+		//model_rotate1 = glm::rotate(model_rotate1, 1 * main_class.delta, glm::vec3(0, 1, 0));
+		model_rotate1 = glm::translate(model_rotate1, glm::vec3(0, sinf(main_class.time)*.1F, 0));
+		modelViewProj = camera.GetViewProj() * model_rotate1;
+		modelView     = camera.GetView() * model_rotate1;
+		invModelView  = glm::transpose(glm::inverse(modelView));
+		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
+		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
+		GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
+		renderModle1.Render();
+
+		//model_rotate2 = glm::rotate(model_rotate2, 2 * main_class.delta, glm::vec3(0, 1, 0));
+		//model_rotate2 = glm::translate(model_rotate2, glm::vec3(0, -sinf(main_class.time)*.1F, 0));
+		modelViewProj = camera.GetViewProj() * model_rotate2;
+		modelView     = camera.GetView() * model_rotate2;
+		invModelView  = glm::transpose(glm::inverse(modelView));
+		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
+		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
+		GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
+		renderModle2.Render();
+
+		//model_rotate3 = glm::rotate(model_rotate3, 3 * main_class.delta, glm::vec3(0, 1, 0));
+		//model_rotate3 = glm::translate(model_rotate3, glm::vec3(0, cosf(main_class.time)*.1F, 0));
+		modelViewProj = camera.GetViewProj() * model_rotate3;
+		modelView     = camera.GetView() * model_rotate3;
+		invModelView  = glm::transpose(glm::inverse(modelView));
+		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
+		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
+		GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
+		renderModle3.Render();
+
+		//model_rotate4 = glm::rotate(model_rotate4, 4 * main_class.delta, glm::vec3(0, 1, 0));
+		model_rotate4 = glm::translate(model_rotate4, glm::vec3(0, -cosf(main_class.time)*.1F, 0));
+		modelViewProj = camera.GetViewProj() * model_rotate4;
+		modelView     = camera.GetView() * model_rotate4;
+		invModelView  = glm::transpose(glm::inverse(modelView));
+		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
+		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
+		GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
+		renderModle4.Render();
 	}
 	while (main_class.MainLoop());
 	//std::cin.get();

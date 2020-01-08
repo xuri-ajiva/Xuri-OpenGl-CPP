@@ -84,8 +84,13 @@ private:
 
 class Model {
 public:
-	void Init(const char* filename, Shader* shader) {
-		std::ifstream input        = std::ifstream(filename, std::ios::in | std::ios::binary);
+	Model(const char* filename, Shader* shader) {
+		this->FileName = filename;
+		this->Shader   = shader;
+	}
+
+	void Init() {
+		std::ifstream input        = std::ifstream(this->FileName, std::ios::in | std::ios::binary);
 		UINT64        numMeshes    = 0;
 		UINT64        numMaterials = 0;
 		if (!input.is_open()) {
@@ -111,7 +116,7 @@ public:
 			std::cout << "normalMap: " << normalMapName << std::endl;
 
 			assert(diffuseMapNameLength > 0);
-			assert(normalMapNameLength > 0);
+			//assert(normalMapNameLength > 0);
 
 			Int32 textureWidth  = 0;
 			Int32 textureHeight = 0;
@@ -120,40 +125,60 @@ public:
 			stbi_set_flip_vertically_on_load(true);
 			{
 				auto textureBuffer = stbi_load(diffuseMapName.c_str(), &textureWidth, &textureHeight, &bitsPerPixel, 4);
-				assert(textureBuffer);
-				assert(material.diffuseMap);
+				//assert(textureBuffer);
+				//assert(material.diffuseMap);
+				if (textureBuffer && material.diffuseMap) {
+					glBindTexture(GL_TEXTURE_2D, material.diffuseMap);
 
-				glBindTexture(GL_TEXTURE_2D, material.diffuseMap);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureBuffer);
 
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureBuffer);
-
-				if (textureBuffer) {
-					stbi_image_free(textureBuffer);
+					if (textureBuffer) {
+						stbi_image_free(textureBuffer);
+					}
+				}
+				else {
+					std::cout << "[" << i << "]: textureBuffer or material.diffuseMap missing" << std::endl;
 				}
 			}
 
 			{
-				auto textureBuffer = stbi_load(normalMapName.c_str(), &textureWidth, &textureHeight, &bitsPerPixel, 4);
-				assert(textureBuffer);
-				assert(material.normalMap);
+				auto textureBuffer = normalMapNameLength > 0
+					                     ? stbi_load(normalMapName.c_str(), &textureWidth, &textureHeight, &bitsPerPixel, 4)
+					                     : new stbi_uc;
 
-				glBindTexture(GL_TEXTURE_2D, material.normalMap);
-
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureBuffer);
-
-				if (textureBuffer) {
-					stbi_image_free(textureBuffer);
+				if (normalMapNameLength <= 0) {
+					textureWidth  = 0;
+					textureHeight = 0;
 				}
+				//assert(textureBuffer);
+				//assert(material.normalMap);
+
+				if (textureBuffer && material.diffuseMap) {
+					glBindTexture(GL_TEXTURE_2D, material.normalMap);
+
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureBuffer);
+
+					if (textureBuffer) {
+						stbi_image_free(textureBuffer);
+					}
+				}
+				else {
+					std::cout << "[" << i << "]: textureBuffer or material.diffuseMap missing" << std::endl;
+				}
+			}
+			if (normalMapNameLength <= 0) {
+				std::cout << "[" << i << "]: no normalMap" << std::endl;
 			}
 
 			glBindTexture(GL_TEXTURE_2D, 0);
@@ -187,7 +212,7 @@ public:
 				input.read((char*)&vertex.tangent.z, sizeof(float));
 				input.read((char*)&vertex.textureCord.x, sizeof(float));
 				input.read((char*)&vertex.textureCord.y, sizeof(float));
-				vertices.push_back(vertex);
+				vertices.push_back(Transform(vertex));
 			}
 			for (Uint64 i = 0; i < numIndices; i++) {
 				Uint32 index;
@@ -195,9 +220,15 @@ public:
 				indices.push_back(index);
 			}
 
-			Mesh* mesh = new Mesh(vertices, numVertices, indices, numIndices, materials[materialIndex], shader);
+			Mesh* mesh = new Mesh(vertices, numVertices, indices, numIndices, materials[materialIndex], this->Shader);
 			meshes.push_back(mesh);
 		}
+	}
+
+	Vertex Transform(Vertex v) {
+		v.position += add;
+		v.position *= multyply;
+		return v;
 	}
 
 	void Render() {
@@ -213,7 +244,12 @@ public:
 		}
 	}
 
+	glm::vec3 add      = glm::vec3(0);
+	glm::vec3 multyply = glm::vec3(1);
+
 private:
+	Shader*               Shader   = {};
+	const char*           FileName = {};
 	std::vector<Mesh*>    meshes;
 	std::vector<Material> materials;
 };
