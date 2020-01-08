@@ -117,14 +117,6 @@ int main(int argc, char** argv) {
 	Model renderModle2(modelFile.c_str(), &shader);
 	Model renderModle3(modelFile.c_str(), &shader);
 	Model renderModle4(modelFile.c_str(), &shader);
-	renderModle1.add      = glm::vec3(0, 0, -400);
-	renderModle2.add      = glm::vec3(0, 0, -200);
-	renderModle3.add      = glm::vec3(0, 0, 200);
-	renderModle4.add      = glm::vec3(0, 0, 400);
-	renderModle1.multyply = glm::vec3(.03);
-	renderModle2.multyply = glm::vec3(.03);
-	renderModle3.multyply = glm::vec3(.03);
-	renderModle4.multyply = glm::vec3(.03);
 	renderModle1.Init();
 	renderModle2.Init();
 	renderModle3.Init();
@@ -139,6 +131,12 @@ int main(int argc, char** argv) {
 	model_rotate2 = glm::scale(model_rotate2, glm::vec3(.2));
 	model_rotate3 = glm::scale(model_rotate3, glm::vec3(.2));
 	model_rotate4 = glm::scale(model_rotate4, glm::vec3(.2));
+
+	model_rotate1 = glm::translate(model_rotate1, glm::vec3(200,0,0));
+	model_rotate2 = glm::translate(model_rotate1, glm::vec3(100,0,0));
+	model_rotate3 = glm::translate(model_rotate1, glm::vec3(-100,0,0));
+	model_rotate4 = glm::translate(model_rotate1, glm::vec3(-200,0,0));
+
 
 	//model_rotate      = scale(model_rotate, glm::vec3(.1F));
 

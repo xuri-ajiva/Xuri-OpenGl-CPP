@@ -19,6 +19,7 @@
     <ClInclude Include="fpsCamera.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="mesh.h" />
+    <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\basic-fragment-shader.glsl.frag">

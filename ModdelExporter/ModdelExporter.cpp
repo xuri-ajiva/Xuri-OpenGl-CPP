@@ -8,6 +8,7 @@
 #include <C:/Program Files/Assimp/include/assimp/Importer.hpp>
 #include <C:/Program Files/Assimp/include/assimp/scene.h>
 #include <C:/Program Files/Assimp/include/assimp/postprocess.h>
+#include <string>
 
 #pragma comment(lib, "C:/Program Files/Assimp/lib/x86/assimp.lib")
 struct Position {
@@ -41,6 +42,30 @@ struct Mesh {
 	std::vector<Position2D> uvs;
 	std::vector<uint32_t>   indices;
 	int                     materialIndex;
+};
+
+struct VertexTextureAndNormal {
+	Position   position;
+	Position   normal;
+	Position   tangent;
+	Position2D textureCord;
+};
+
+struct VertexTextureOnly {
+	Position   position;
+	Position   normal;
+	Position2D textureCord;
+};
+
+struct VertexMaterialOnly {
+	Position position;
+	Position normal;
+};
+
+enum VertexMode {
+	TextureAndNormal,
+	TextureOnly,
+	MaterialOnly
 };
 
 std::vector<Mesh>     meshes;
@@ -149,10 +174,8 @@ void processMaterials(const aiScene* scene) {
 
 		uint32_t numDiffuseMaps = material->GetTextureCount(aiTextureType_DIFFUSE);
 		uint32_t numNormalMaps  = material->GetTextureCount(aiTextureType_NORMALS);
-		assert(numDiffuseMaps > 0);
-		material->GetTexture(aiTextureType_DIFFUSE, 0, &mat.diffuseMapName);
-		assert(numNormalMaps > 0);
-		material->GetTexture(aiTextureType_NORMALS, 0, &mat.normalMapName);
+		if (numDiffuseMaps > 0) material->GetTexture(aiTextureType_DIFFUSE, 0, &mat.diffuseMapName);
+		if (numNormalMaps > 0) material->GetTexture(aiTextureType_NORMALS, 0, &mat.normalMapName);
 
 		materials.push_back(mat);
 	}
@@ -171,14 +194,36 @@ int main(int argc, char** argv) {
 	}
 
 	Assimp::Importer importer;
-	const aiScene*   scene = importer.ReadFile(argv[argc - 1],
+	const aiScene*   scene = importer.ReadFile(argv[argc - 1],/*"C:\\0EE934262B1635B7\\source\\repos\\OpenGl\\build\\models\\tree.fbx",*/
 	                                           aiProcess_PreTransformVertices | aiProcess_Triangulate | aiProcess_GenNormals |
-	                                           aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph | aiProcess_JoinIdenticalVertices |
+	                                           aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph | aiProcess_JoinIdenticalVertices
+	                                           |
 	                                           aiProcess_ImproveCacheLocality | aiProcess_CalcTangentSpace);
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE, !scene->mRootNode) {
 		std::cout << "Error while loading model with assimp: " << importer.GetErrorString() << std::endl;
 		return 1;
 	}
+
+	uint64_t sizeOfVertex = meshes.size();
+	int      mode_i       = 0;
+	std::cout << "Choise Export Formarte: " << std::endl << "	" << TextureAndNormal << ": TextureAndNormal" << std::endl <<
+		"	" << TextureOnly << ": TextureOnly" << std::endl << "	" << MaterialOnly << ": MaterialOnly" << std::endl;
+	std::cin >> mode_i;
+	switch (mode_i) {
+		case TextureAndNormal:
+			sizeOfVertex = sizeof(VertexTextureAndNormal);
+			break;
+		case TextureOnly:
+			sizeOfVertex = sizeof(VertexTextureOnly);
+			break;
+		case MaterialOnly:
+			sizeOfVertex = sizeof(VertexMaterialOnly);
+			break;
+		default:
+			std::cout << "not a enum!" << std::endl;
+			return -1;
+	}
+	auto mode = VertexMode(mode_i);
 
 	processMaterials(scene);
 	processNode(scene->mRootNode, scene);
@@ -203,16 +248,14 @@ int main(int argc, char** argv) {
 		output.write((char*)&material.diffuseMapName.data, material.diffuseMapName.length);
 		
 		// Normal map
-		#if USENORMAL
-		uint64_t normalMapNameLength = material.normalMapName.length + 7;
-		#else
 		uint64_t normalMapNameLength = 0;
-		#endif
+		if (mode == TextureAndNormal) normalMapNameLength = material.normalMapName.length + 7;
+
 		output.write((char*)&normalMapNameLength, sizeof(uint64_t));
-		#if USENORMAL
-		output.write(pathPrefix, 7);
-		output.write((char*)&material.normalMapName.data, material.normalMapName.length);
-		#endif
+		if (mode == TextureAndNormal) {
+			output.write(pathPrefix, 7);
+			output.write((char*)&material.normalMapName.data, material.normalMapName.length);
+		}
 
 		std::cout << "Writing Materials : " << (hf++) << std::endl;
 	}
@@ -221,6 +264,9 @@ int main(int argc, char** argv) {
 	// Meshes
 	uint64_t numMeshes = meshes.size();
 	output.write((char*)&numMeshes, sizeof(uint64_t));
+
+
+	output.write((char*)&sizeOfVertex, sizeof(uint64_t));
 	for (Mesh& mesh : meshes) {
 		uint64_t numVertices   = mesh.positions.size();
 		uint64_t numIndices    = mesh.indices.size();
@@ -238,12 +284,15 @@ int main(int argc, char** argv) {
 			output.write((char*)&mesh.normals[i].y, sizeof(float));
 			output.write((char*)&mesh.normals[i].z, sizeof(float));
 
-			//output.write((char*)&mesh.tangents[i].x, sizeof(float));
-			//output.write((char*)&mesh.tangents[i].y, sizeof(float));
-			//output.write((char*)&mesh.tangents[i].z, sizeof(float));
-
-			output.write((char*)&mesh.uvs[i].x, sizeof(float));
-			output.write((char*)&mesh.uvs[i].y, sizeof(float));
+			if (mode == TextureAndNormal) {
+				output.write((char*)&mesh.tangents[i].x, sizeof(float));
+				output.write((char*)&mesh.tangents[i].y, sizeof(float));
+				output.write((char*)&mesh.tangents[i].z, sizeof(float));
+			}
+			if (mode == TextureAndNormal || mode == TextureOnly) {
+				output.write((char*)&mesh.uvs[i].x, sizeof(float));
+				output.write((char*)&mesh.uvs[i].y, sizeof(float));
+			}
 		}
 		for (uint64_t i = 0; i < numIndices; i++) {
 			output.write((char*)&mesh.indices[i], sizeof(uint32_t));

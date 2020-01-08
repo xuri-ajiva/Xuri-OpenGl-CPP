@@ -9,6 +9,8 @@
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 #include "libs/stb_image.h"
+#include <variant>
+#include <iostream>
 
 struct BMFMaterial {
 	glm::vec3 diffuse   = {};
@@ -25,14 +27,16 @@ struct Material {
 
 class Mesh {
 public:
-	Mesh(std::vector<Vertex> vertices, Uint64  numVertices, std::vector<Uint32> indices, Uint64 numIndices,
-	     Material            material, Shader* shader) {
+	Mesh(void*    data, Uint64      numVertices, std::vector<Uint32> indices, Uint64 numIndices,
+	     Material material, Shader* shader, VertexMode               mode) {
+
+		this->vertexMode = mode;
 		this->material   = material;
 		this->shader     = shader;
 		this->numIndices = numIndices;
 
 
-		vertexBuffer = new VertexBuffer(vertices.data(), numVertices);
+		vertexBuffer = new VertexBuffer(data, numVertices, mode);
 		std::cout << "vertexBuffer initialized PointerID: " << vertexBuffer->GET_BUFFER_ID() << std::endl;
 		indexBuffer = new IndexBuffer(indices.data(), numIndices, sizeof(indices[0]));
 		std::cout << "indexBuffer initialized PointerID: " << indexBuffer->GET_BUFFER_ID() << std::endl;
@@ -57,18 +61,23 @@ public:
 		glUniform3fv(specularLocation, 1, (float*)&material.material.specular.x);
 		glUniform3fv(emissiveLocation, 1, (float*)&material.material.emissive.x);
 		glUniform1f(shininessLocation, material.material.shininess);
-		glBindTexture(GL_TEXTURE_2D, material.diffuseMap);
-		glUniform1i(diffuseMapLocation, 0);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, material.normalMap);
-		glActiveTexture(GL_TEXTURE0);
-		glUniform1i(normalMapLocation, 1);
+		if (this->vertexMode == TextureOnly || this->vertexMode == TextureAndNormal) {
+			glBindTexture(GL_TEXTURE_2D, material.diffuseMap);
+			glUniform1i(diffuseMapLocation, 0);
+		}
+		if (this->vertexMode == TextureAndNormal) {
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, material.normalMap);
+			glActiveTexture(GL_TEXTURE0);
+			glUniform1i(normalMapLocation, 1);
+		}
 		glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0);
 		//vertexBuffer->UNBIND();
 		//indexBuffer->UNBIND();
 	}
 
 private:
+	VertexMode    vertexMode;
 	VertexBuffer* vertexBuffer;
 	IndexBuffer*  indexBuffer;
 	Shader*       shader;
@@ -93,6 +102,8 @@ public:
 		std::ifstream input        = std::ifstream(this->FileName, std::ios::in | std::ios::binary);
 		UINT64        numMeshes    = 0;
 		UINT64        numMaterials = 0;
+		UINT64        sizeOfVertex = 0;
+		VertexMode    vertexMode   = {};
 		if (!input.is_open()) {
 			std::cout << "File Not Found!" << std::endl;
 			return;
@@ -186,49 +197,102 @@ public:
 		}
 		// mesh
 		input.read((char*)&numMeshes, sizeof(Uint64));
+		input.read((char*)&sizeOfVertex, sizeof(Uint64));
+
+
+		switch (sizeOfVertex) {
+			case sizeof(VertexTextureAndNormal):
+				vertexMode = TextureAndNormal;
+				break;
+			case sizeof(VertexTextureOnly):
+				vertexMode = TextureOnly;
+				break;
+			case sizeof(VertexMaterialOnly):
+				vertexMode = MaterialOnly;
+				break;
+			default:
+				std::cout << "[ERROR]: unknown Vertex Struct!" << std::endl;
+				return;
+		}
+
 		meshes.reserve(numMeshes);
 		for (Uint64 i = 0; i < numMeshes; i++) {
 			std::vector<Uint32> indices;
-			std::vector<Vertex> vertices;
-
-			Uint64 numVertices   = 0;
-			Uint64 numIndices    = 0;
-			Uint64 materialIndex = 0;
+			Uint64              numVertices   = 0;
+			Uint64              numIndices    = 0;
+			Uint64              materialIndex = 0;
 
 			input.read((char*)&materialIndex, sizeof(Uint64));
 			input.read((char*)&numVertices, sizeof(Uint64));
 			input.read((char*)&numIndices, sizeof(Uint64));
 
-			for (Uint64 i = 0; i < numVertices; i++) {
-				Vertex vertex;
-				input.read((char*)&vertex.position.x, sizeof(float));
-				input.read((char*)&vertex.position.y, sizeof(float));
-				input.read((char*)&vertex.position.z, sizeof(float));
-				input.read((char*)&vertex.normal.x, sizeof(float));
-				input.read((char*)&vertex.normal.y, sizeof(float));
-				input.read((char*)&vertex.normal.z, sizeof(float));
-				input.read((char*)&vertex.tangent.x, sizeof(float));
-				input.read((char*)&vertex.tangent.y, sizeof(float));
-				input.read((char*)&vertex.tangent.z, sizeof(float));
-				input.read((char*)&vertex.textureCord.x, sizeof(float));
-				input.read((char*)&vertex.textureCord.y, sizeof(float));
-				vertices.push_back(Transform(vertex));
+			std::vector<VertexTextureAndNormal> verticesN;
+			std::vector<VertexTextureOnly>      verticesT;
+			std::vector<VertexMaterialOnly>     verticesM;
+
+			void* data;
+
+			switch (vertexMode) {
+				case TextureAndNormal:
+					for (Uint64 k = 0; k < numVertices; k++) {
+						VertexTextureAndNormal vertex {};
+						input.read((char*)&vertex.position.x, sizeof(float));
+						input.read((char*)&vertex.position.y, sizeof(float));
+						input.read((char*)&vertex.position.z, sizeof(float));
+						input.read((char*)&vertex.normal.x, sizeof(float));
+						input.read((char*)&vertex.normal.y, sizeof(float));
+						input.read((char*)&vertex.normal.z, sizeof(float));
+						input.read((char*)&vertex.tangent.x, sizeof(float));
+						input.read((char*)&vertex.tangent.y, sizeof(float));
+						input.read((char*)&vertex.tangent.z, sizeof(float));
+						input.read((char*)&vertex.textureCord.x, sizeof(float));
+						input.read((char*)&vertex.textureCord.y, sizeof(float));
+						verticesN.push_back(vertex);
+					}
+					data = verticesN.data();
+					break;
+				case TextureOnly:
+					for (Uint64 l = 0; l < numVertices; l++) {
+						VertexTextureOnly vertex {};
+						input.read((char*)&vertex.position.x, sizeof(float));
+						input.read((char*)&vertex.position.y, sizeof(float));
+						input.read((char*)&vertex.position.z, sizeof(float));
+						input.read((char*)&vertex.normal.x, sizeof(float));
+						input.read((char*)&vertex.normal.y, sizeof(float));
+						input.read((char*)&vertex.normal.z, sizeof(float));
+						input.read((char*)&vertex.textureCord.x, sizeof(float));
+						input.read((char*)&vertex.textureCord.y, sizeof(float));
+						verticesT.push_back(vertex);
+					}
+					data = verticesT.data();
+					break;
+				case MaterialOnly:
+					for (Uint64 r = 0; r < numVertices; r++) {
+						VertexMaterialOnly vertex {};
+						input.read((char*)&vertex.position.x, sizeof(float));
+						input.read((char*)&vertex.position.y, sizeof(float));
+						input.read((char*)&vertex.position.z, sizeof(float));
+						input.read((char*)&vertex.normal.x, sizeof(float));
+						input.read((char*)&vertex.normal.y, sizeof(float));
+						input.read((char*)&vertex.normal.z, sizeof(float));
+						verticesM.push_back(vertex);
+					}
+					data = verticesM.data();
+					break;
+				default:
+					std::cout << "[ERROR]: unknown Vertex Struct!" << std::endl;
+					return;
 			}
-			for (Uint64 i = 0; i < numIndices; i++) {
+
+			for (Uint64 g = 0; g < numIndices; g++) {
 				Uint32 index;
 				input.read((char*)&index, sizeof(Uint32));
 				indices.push_back(index);
 			}
 
-			Mesh* mesh = new Mesh(vertices, numVertices, indices, numIndices, materials[materialIndex], this->Shader);
+			Mesh* mesh = new Mesh(data, numVertices, indices, numIndices, materials[materialIndex], this->Shader, vertexMode);
 			meshes.push_back(mesh);
 		}
-	}
-
-	Vertex Transform(Vertex v) {
-		v.position += add;
-		v.position *= multyply;
-		return v;
 	}
 
 	void Render() {
@@ -243,9 +307,6 @@ public:
 			delete mesh;
 		}
 	}
-
-	glm::vec3 add      = glm::vec3(0);
-	glm::vec3 multyply = glm::vec3(1);
 
 private:
 	Shader*               Shader   = {};

@@ -10,6 +10,7 @@
 #include <SDL2/SDL.h>
 #include <chrono>
 #include "libs/glm/glm.hpp"
+#include "Vertex.h"
 
 typedef int8_t  Int8;
 typedef int16_t Int16;
@@ -23,10 +24,3 @@ typedef uint64_t Uint64;
 
 typedef float  float32;
 typedef double float64;
-
-struct Vertex {
-	glm::vec3 position;
-	glm::vec3 normal;
-	glm::vec3 tangent;
-	glm::vec2 textureCord;
-};
