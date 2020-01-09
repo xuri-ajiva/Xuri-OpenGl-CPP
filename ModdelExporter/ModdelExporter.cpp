@@ -234,6 +234,8 @@ int main(int argc, char** argv) {
 
 	std::ofstream output(outputFilename, std::ios::out | std::ios::binary);
 	std::cout << "Writing bmf file..." << std::endl;
+	output.write((char*)&sizeOfVertex, sizeof(uint64_t));
+
 	std::cout << "Writing Materials : " << std::endl;
 	// Materials
 	uint64_t numMaterials = materials.size();
@@ -241,11 +243,16 @@ int main(int argc, char** argv) {
 	for (Material material : materials) {
 		output.write((char*)&material, sizeof(BMFMaterial));
 		const char* pathPrefix = "models/";
+
 		// Diffuse map
-		uint64_t diffuesMapNameLength = material.diffuseMapName.length + 7;
+		uint64_t diffuesMapNameLength = 0;
+		if (mode == TextureOnly || mode == TextureAndNormal) diffuesMapNameLength = material.diffuseMapName.length + 7;
 		output.write((char*)&diffuesMapNameLength, sizeof(uint64_t));
-		output.write(pathPrefix, 7);
-		output.write((char*)&material.diffuseMapName.data, material.diffuseMapName.length);
+
+		if (mode == TextureOnly|| mode == TextureAndNormal) {
+			output.write(pathPrefix, 7);
+			output.write((char*)&material.diffuseMapName.data, material.diffuseMapName.length);
+		}
 		
 		// Normal map
 		uint64_t normalMapNameLength = 0;
@@ -264,9 +271,6 @@ int main(int argc, char** argv) {
 	// Meshes
 	uint64_t numMeshes = meshes.size();
 	output.write((char*)&numMeshes, sizeof(uint64_t));
-
-
-	output.write((char*)&sizeOfVertex, sizeof(uint64_t));
 	for (Mesh& mesh : meshes) {
 		uint64_t numVertices   = mesh.positions.size();
 		uint64_t numIndices    = mesh.indices.size();

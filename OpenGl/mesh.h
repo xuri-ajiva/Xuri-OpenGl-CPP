@@ -37,16 +37,18 @@ public:
 
 
 		vertexBuffer = new VertexBuffer(data, numVertices, mode);
-		std::cout << "vertexBuffer initialized PointerID: " << vertexBuffer->GET_BUFFER_ID() << std::endl;
+		PrintStatus('V', vertexBuffer->GET_BUFFER_ID(), "-> vertexBuffer", 3, MESSAGE_COLOR);
 		indexBuffer = new IndexBuffer(indices.data(), numIndices, sizeof(indices[0]));
-		std::cout << "indexBuffer initialized PointerID: " << indexBuffer->GET_BUFFER_ID() << std::endl;
+		PrintStatus('I', indexBuffer->GET_BUFFER_ID(), "-> indexBuffer", 5, MESSAGE_COLOR);
 
-		diffuseLocation    = glGetUniformLocation(shader->GetShaderID(), "u_material.diffuse");
-		specularLocation   = glGetUniformLocation(shader->GetShaderID(), "u_material.specular");
-		emissiveLocation   = glGetUniformLocation(shader->GetShaderID(), "u_material.emissive");
-		shininessLocation  = glGetUniformLocation(shader->GetShaderID(), "u_material.shininess");
-		diffuseMapLocation = glGetUniformLocation(shader->GetShaderID(), "u_diffuse_map");
-		normalMapLocation  = glGetUniformLocation(shader->GetShaderID(), "u_normal_map");
+		diffuseLocation      = glGetUniformLocation(shader->GetShaderID(), "u_material.diffuse");
+		specularLocation     = glGetUniformLocation(shader->GetShaderID(), "u_material.specular");
+		emissiveLocation     = glGetUniformLocation(shader->GetShaderID(), "u_material.emissive");
+		shininessLocation    = glGetUniformLocation(shader->GetShaderID(), "u_material.shininess");
+		diffuseMapLocation   = glGetUniformLocation(shader->GetShaderID(), "u_diffuse_map");
+		normalMapLocation    = glGetUniformLocation(shader->GetShaderID(), "u_normal_map");
+		useNormalMapLocation = glGetUniformLocation(shader->GetShaderID(), "u_use_normal_map");
+		useTexturesLocation  = glGetUniformLocation(shader->GetShaderID(), "u_use_textures");
 	}
 
 	~Mesh() {
@@ -64,12 +66,18 @@ public:
 		if (this->vertexMode == TextureOnly || this->vertexMode == TextureAndNormal) {
 			glBindTexture(GL_TEXTURE_2D, material.diffuseMap);
 			glUniform1i(diffuseMapLocation, 0);
+			glUniform1i(useTexturesLocation, 1); //tell shader to use textures
+		} else {
+			glUniform1i(useTexturesLocation, 0);
 		}
 		if (this->vertexMode == TextureAndNormal) {
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, material.normalMap);
 			glActiveTexture(GL_TEXTURE0);
 			glUniform1i(normalMapLocation, 1);
+			glUniform1i(useNormalMapLocation, 1); //tell shader to use normalMap
+		} else {
+			glUniform1i(useNormalMapLocation, 0);
 		}
 		glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0);
 		//vertexBuffer->UNBIND();
@@ -89,6 +97,8 @@ private:
 	int           shininessLocation;
 	int           diffuseMapLocation;
 	int           normalMapLocation;
+	int           useTexturesLocation;
+	int           useNormalMapLocation;
 };
 
 class Model {
@@ -105,8 +115,23 @@ public:
 		UINT64        sizeOfVertex = 0;
 		VertexMode    vertexMode   = {};
 		if (!input.is_open()) {
-			std::cout << "File Not Found!" << std::endl;
+			PrintError('#', -1, "File Not Found!",MINUS_COLOR);
 			return;
+		}
+		input.read((char*)&sizeOfVertex, sizeof(Uint64));
+		switch (sizeOfVertex) {
+			case sizeof(VertexTextureAndNormal):
+				vertexMode = TextureAndNormal;
+				break;
+			case sizeof(VertexTextureOnly):
+				vertexMode = TextureOnly;
+				break;
+			case sizeof(VertexMaterialOnly):
+				vertexMode = MaterialOnly;
+				break;
+			default:
+				PrintError('-', -1, "unknown Vertex Struct!",MINUS_COLOR);
+				return;
 		}
 
 		input.read((char*)&numMaterials, sizeof(Uint64));
@@ -118,15 +143,15 @@ public:
 			input.read((char*)&diffuseMapNameLength, sizeof(Uint64));
 			std::string diffuseMapName(diffuseMapNameLength, '\0');
 			input.read((char*)&diffuseMapName[0], diffuseMapNameLength);
-			std::cout << "diffuseMap: " << diffuseMapName << std::endl;
+			PrintStatus('+', i, ("diffuseMap: " + diffuseMapName).c_str(),diffuseMapNameLength > 0 ? PLUS_COLOR : MINUS_COLOR,MESSAGE_COLOR);
 
 			Uint64 normalMapNameLength = 0;
 			input.read((char*)&normalMapNameLength, sizeof(Uint64));
 			std::string normalMapName(normalMapNameLength, '\0');
 			input.read((char*)&normalMapName[0], normalMapNameLength);
-			std::cout << "normalMap: " << normalMapName << std::endl;
+			PrintStatus('+', i, ("normalMap: " + normalMapName).c_str(),normalMapNameLength > 0 ? PLUS_COLOR : MINUS_COLOR,MESSAGE_COLOR);
 
-			assert(diffuseMapNameLength > 0);
+			//assert(diffuseMapNameLength > 0);
 			//assert(normalMapNameLength > 0);
 
 			Int32 textureWidth  = 0;
@@ -134,10 +159,12 @@ public:
 			Int32 bitsPerPixel  = 0;
 			glGenTextures(2, &material.diffuseMap);
 			stbi_set_flip_vertically_on_load(true);
-			{
+			if (vertexMode == TextureOnly || vertexMode == TextureAndNormal) {
 				auto textureBuffer = stbi_load(diffuseMapName.c_str(), &textureWidth, &textureHeight, &bitsPerPixel, 4);
+
 				//assert(textureBuffer);
 				//assert(material.diffuseMap);
+
 				if (textureBuffer && material.diffuseMap) {
 					glBindTexture(GL_TEXTURE_2D, material.diffuseMap);
 
@@ -151,21 +178,13 @@ public:
 					if (textureBuffer) {
 						stbi_image_free(textureBuffer);
 					}
-				}
-				else {
-					std::cout << "[" << i << "]: textureBuffer or material.diffuseMap missing" << std::endl;
+				} else {
+					PrintError('-', i, "textureBuffer or material.diffuseMap missing",MINUS_COLOR);
 				}
 			}
+			if (vertexMode == TextureAndNormal) {
+				auto textureBuffer = stbi_load(normalMapName.c_str(), &textureWidth, &textureHeight, &bitsPerPixel, 4);
 
-			{
-				auto textureBuffer = normalMapNameLength > 0
-					                     ? stbi_load(normalMapName.c_str(), &textureWidth, &textureHeight, &bitsPerPixel, 4)
-					                     : new stbi_uc;
-
-				if (normalMapNameLength <= 0) {
-					textureWidth  = 0;
-					textureHeight = 0;
-				}
 				//assert(textureBuffer);
 				//assert(material.normalMap);
 
@@ -177,43 +196,22 @@ public:
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-
 					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureBuffer);
 
 					if (textureBuffer) {
 						stbi_image_free(textureBuffer);
 					}
+				} else {
+					PrintError('-', i, "textureBuffer or material.diffuseMap missing",MINUS_COLOR);
 				}
-				else {
-					std::cout << "[" << i << "]: textureBuffer or material.diffuseMap missing" << std::endl;
-				}
-			}
-			if (normalMapNameLength <= 0) {
-				std::cout << "[" << i << "]: no normalMap" << std::endl;
 			}
 
 			glBindTexture(GL_TEXTURE_2D, 0);
+			PrintStatus('C', i, "-> Material", 11,MESSAGE_COLOR);
 			materials.push_back(material);
 		}
 		// mesh
 		input.read((char*)&numMeshes, sizeof(Uint64));
-		input.read((char*)&sizeOfVertex, sizeof(Uint64));
-
-
-		switch (sizeOfVertex) {
-			case sizeof(VertexTextureAndNormal):
-				vertexMode = TextureAndNormal;
-				break;
-			case sizeof(VertexTextureOnly):
-				vertexMode = TextureOnly;
-				break;
-			case sizeof(VertexMaterialOnly):
-				vertexMode = MaterialOnly;
-				break;
-			default:
-				std::cout << "[ERROR]: unknown Vertex Struct!" << std::endl;
-				return;
-		}
 
 		meshes.reserve(numMeshes);
 		for (Uint64 i = 0; i < numMeshes; i++) {
@@ -280,7 +278,7 @@ public:
 					data = verticesM.data();
 					break;
 				default:
-					std::cout << "[ERROR]: unknown Vertex Struct!" << std::endl;
+					PrintError('-', -1, "unknown Vertex Struct!",MINUS_COLOR);
 					return;
 			}
 
@@ -291,6 +289,7 @@ public:
 			}
 
 			Mesh* mesh = new Mesh(data, numVertices, indices, numIndices, materials[materialIndex], this->Shader, vertexMode);
+			PrintStatus('M', i, "-> Mesh*", 13,MESSAGE_COLOR);
 			meshes.push_back(mesh);
 		}
 	}

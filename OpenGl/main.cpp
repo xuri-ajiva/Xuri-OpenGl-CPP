@@ -1,4 +1,6 @@
+#define NO_DEINES_XURI
 #include "defines.h"
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 
 //#define TEXTURE_MY
 
@@ -17,6 +19,15 @@
 #include "libs/glm/ext/matrix_transform.hpp"
 #include "libs/glm/ext/matrix_relational.hpp"
 #include "libs/glm/gtc/matrix_transform.hpp"
+
+#include <fstream>
+#include <iostream>
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+
+//#define BOOST_FILESYSTEM_VERSION 3
+//#define BOOST_FILESYSTEM_NO_DEPRECATED 
+//#include <boost/filesystem.hpp>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -62,10 +73,13 @@ const char* vertexShader   = "basic-vertex-shader.glsl.vert";
 const char* fragmentShader = "basic-fragment-shader.glsl.frag";
 
 int main(int argc, char** argv) {
-	std::string modelFile = (ModelsPos + "fern.bmf");
-	if (argc >= 2) {
-		modelFile = argv[1];
-	}
+	std::vector<Model*>     models;
+	std::vector<glm::mat4> mats;
+
+	//std::string modelFile = (ModelsPos + "tree.bmf");
+	//if (argc >= 2) {
+	//	modelFile = argv[1];
+	//}
 	MainClass main_class {};
 
 	const int init_err = main_class.Init();
@@ -79,7 +93,7 @@ int main(int argc, char** argv) {
 
 	Shader shader((ShaderPos + vertexShader).c_str(), (ShaderPos + fragmentShader).c_str());
 	shader.bind();
-	std::cout << "shader initialized PointerID: " << shader.GetShaderID() << std::endl;
+	PrintStatus('S', shader.GetShaderID(), "-> Shader", 9,MESSAGE_COLOR);
 
 	int       directionLocation = GLCALL(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.direction"));
 	glm::vec3 sunColor          = glm::vec3(1);
@@ -113,29 +127,25 @@ int main(int argc, char** argv) {
 	GLCALL(glUniform1f( glGetUniformLocation(shader.GetShaderID(), "u_spot_light.innerCone"), 0.99f));
 	GLCALL(glUniform1f( glGetUniformLocation(shader.GetShaderID(), "u_spot_light.outerCone"), 0.98f));
 
-	Model renderModle1(modelFile.c_str(), &shader);
-	Model renderModle2(modelFile.c_str(), &shader);
-	Model renderModle3(modelFile.c_str(), &shader);
-	Model renderModle4(modelFile.c_str(), &shader);
-	renderModle1.Init();
-	renderModle2.Init();
-	renderModle3.Init();
-	renderModle4.Init();
+	std::string path(ModelsPos);
+	std::string ext(".bmf");
+	int         idx = 0;
+	for (auto& p : fs::recursive_directory_iterator(path)) {
+		if (p.path().extension() == ext) {
+			std::cout << "Loading: " << p << '\n';
+			auto t = p.path().string();
+			Model*      model = new Model(t.c_str(), &shader);
+			model->Init();
+			models.push_back(model);
+			auto mat4X = glm::mat4(1.0F);
+			mat4X      = glm::translate(mat4X, glm::vec3(100 * (idx++), 0, 0));
+			mat4X      = glm::scale(mat4X, glm::vec3(.2));
+			mats.push_back(mat4X);
+		}
+	}
 
-	auto model_rotate1 = glm::mat4(1.0F);
-	auto model_rotate2 = glm::mat4(1.0F);
-	auto model_rotate3 = glm::mat4(1.0F);
-	auto model_rotate4 = glm::mat4(1.0F);
 
-	model_rotate1 = glm::scale(model_rotate1, glm::vec3(.2));
-	model_rotate2 = glm::scale(model_rotate2, glm::vec3(.2));
-	model_rotate3 = glm::scale(model_rotate3, glm::vec3(.2));
-	model_rotate4 = glm::scale(model_rotate4, glm::vec3(.2));
-
-	model_rotate1 = glm::translate(model_rotate1, glm::vec3(200,0,0));
-	model_rotate2 = glm::translate(model_rotate1, glm::vec3(100,0,0));
-	model_rotate3 = glm::translate(model_rotate1, glm::vec3(-100,0,0));
-	model_rotate4 = glm::translate(model_rotate1, glm::vec3(-200,0,0));
+	auto camModelRender = glm::scale(glm::mat4(1.0F), glm::vec3(.2));
 
 
 	//model_rotate      = scale(model_rotate, glm::vec3(.1F));
@@ -144,7 +154,7 @@ int main(int argc, char** argv) {
 	camera.Translate(glm::vec3(0, 0, 5.0f));
 	camera.update();
 
-	auto modelViewProj = camera.GetViewProj() * model_rotate1;
+	auto modelViewProj = camera.GetViewProj() * camModelRender;
 
 	int modelViewProjMatrixLocation = glGetUniformLocation(shader.GetShaderID(), "u_modelViewProj");
 	int modelViewLocation           = glGetUniformLocation(shader.GetShaderID(), "u_modelView");
@@ -159,7 +169,7 @@ int main(int argc, char** argv) {
 
 	//glPolygonMode (GL_FRONT_AND_BACK,GL_LINE);
 
-	float32 camaraSpeed = 6.0F;
+	float32 camaraSpeed = 60.0F;
 
 	GLCALL(glEnable(GL_DEPTH_TEST));
 	do {
@@ -176,46 +186,50 @@ int main(int argc, char** argv) {
 				//if (event.key.keysym.sym == SDLK_p && event.key.keysym.mod & KMOD_LALT) {	//	if (orthoCam) {	//		projection = perspective;	//	}	//	else {	//		projection = ortho;	//	}	//	//	orthoCam = !orthoCam;	//}	
 				const auto state = event.type == SDL_KEYDOWN;
 				switch (event.key.keysym.sym) {
-					case SDLK_ESCAPE: return 0;
-					case SDLK_w: b_W = state;
+					case SDLK_ESCAPE:
+						return 0;
+					case SDLK_w:
+						b_W = state;
 						break;
-					case SDLK_a: b_A = state;
+					case SDLK_a:
+						b_A = state;
 						break;
-					case SDLK_s: b_S = state;
+					case SDLK_s:
+						b_S = state;
 						break;
-					case SDLK_d: b_D = state;
+					case SDLK_d:
+						b_D = state;
 						break;
-					case SDLK_q: b_Q = state;
+					case SDLK_q:
+						b_Q = state;
 						break;
-					case SDLK_e: b_E = state;
+					case SDLK_e:
+						b_E = state;
 						break;
-					case SDLK_F1: if (state) camera.SetFreeCam(!camera.GetFreeCam());
+					case SDLK_F1:
+						if (state) camera.SetFreeCam(!camera.GetFreeCam());
 						break;
-					case SDLK_F2: if (state) SDL_SetRelativeMouseMode(SDL_FALSE);
+					case SDLK_F2:
+						if (state) SDL_SetRelativeMouseMode(SDL_FALSE);
 						break;
 					default: ;
 				}
 				if (event.key.keysym.mod & KMOD_LSHIFT) {
-					camaraSpeed = 14.0;
-				}
-				else if (event.key.keysym.mod & KMOD_LCTRL) {
+					camaraSpeed = 140.0;
+				} else if (event.key.keysym.mod & KMOD_LCTRL) {
 					camaraSpeed = 2.0;
-				}
-				else {
-					camaraSpeed = 6.0;
+				} else {
+					camaraSpeed = 60.0;
 				}
 				
 				//if (event.key.keysym.sym == SDLK_p && event.key.keysym.mod & KMOD_LALT) { }
-			}
-			else if (event.type == SDL_MOUSEMOTION) {
+			} else if (event.type == SDL_MOUSEMOTION) {
 				if (SDL_GetRelativeMouseMode()) camera.onMouseMoved(event.motion.xrel, event.motion.yrel);
-			}
-			else if (event.type == SDL_MOUSEBUTTONDOWN) {
+			} else if (event.type == SDL_MOUSEBUTTONDOWN) {
 				if (event.button.button == SDL_BUTTON_LEFT) {
 					SDL_SetRelativeMouseMode(SDL_TRUE);
 				}
-			}
-			else if (event.type == SDL_WINDOWEVENT) {
+			} else if (event.type == SDL_WINDOWEVENT) {
 				int w, h;
 				SDL_GetWindowSize(main_class.window, &w, &h);
 				glViewport(0, 0, w, h);
@@ -245,8 +259,8 @@ int main(int argc, char** argv) {
 		}
 
 		camera.update();
-		modelViewProj          = camera.GetViewProj() * model_rotate1;
-		glm::mat4 modelView    = camera.GetView() * model_rotate1;
+		modelViewProj          = camera.GetViewProj() * camModelRender;
+		glm::mat4 modelView    = camera.GetView() * camModelRender;
 		glm::mat4 invModelView = glm::transpose(glm::inverse(modelView));
 
 		glm::vec4 transformedSunDirection = glm::transpose(glm::inverse(camera.GetView())) * glm::vec4(
@@ -265,45 +279,18 @@ int main(int argc, char** argv) {
 
 		///
 
-		//model_rotate1 = glm::rotate(model_rotate1, 1 * main_class.delta, glm::vec3(0, 1, 0));
-		model_rotate1 = glm::translate(model_rotate1, glm::vec3(0, sinf(main_class.time)*.1F, 0));
-		modelViewProj = camera.GetViewProj() * model_rotate1;
-		modelView     = camera.GetView() * model_rotate1;
-		invModelView  = glm::transpose(glm::inverse(modelView));
-		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
-		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
-		GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
-		renderModle1.Render();
+		for (int i = 0; i < idx; ++i) {
+			//mats[i]   =  glm::rotate(mats[i],main_class.time * , glm::vec3 (0, main_class.time,0));
+			modelViewProj = camera.GetViewProj() * mats[i];
+			modelView     = camera.GetView() * mats[i];
+			invModelView  = glm::transpose(glm::inverse(modelView));
+			
+			GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
+			GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
+			GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
 
-		//model_rotate2 = glm::rotate(model_rotate2, 2 * main_class.delta, glm::vec3(0, 1, 0));
-		//model_rotate2 = glm::translate(model_rotate2, glm::vec3(0, -sinf(main_class.time)*.1F, 0));
-		modelViewProj = camera.GetViewProj() * model_rotate2;
-		modelView     = camera.GetView() * model_rotate2;
-		invModelView  = glm::transpose(glm::inverse(modelView));
-		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
-		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
-		GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
-		renderModle2.Render();
-
-		//model_rotate3 = glm::rotate(model_rotate3, 3 * main_class.delta, glm::vec3(0, 1, 0));
-		//model_rotate3 = glm::translate(model_rotate3, glm::vec3(0, cosf(main_class.time)*.1F, 0));
-		modelViewProj = camera.GetViewProj() * model_rotate3;
-		modelView     = camera.GetView() * model_rotate3;
-		invModelView  = glm::transpose(glm::inverse(modelView));
-		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
-		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
-		GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
-		renderModle3.Render();
-
-		//model_rotate4 = glm::rotate(model_rotate4, 4 * main_class.delta, glm::vec3(0, 1, 0));
-		model_rotate4 = glm::translate(model_rotate4, glm::vec3(0, -cosf(main_class.time)*.1F, 0));
-		modelViewProj = camera.GetViewProj() * model_rotate4;
-		modelView     = camera.GetView() * model_rotate4;
-		invModelView  = glm::transpose(glm::inverse(modelView));
-		GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
-		GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
-		GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));
-		renderModle4.Render();
+			models[i]->Render();
+		}
 	}
 	while (main_class.MainLoop());
 	//std::cin.get();

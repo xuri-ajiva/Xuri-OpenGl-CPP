@@ -54,19 +54,32 @@ uniform SpotLight        u_spot_light;
 uniform sampler2D        u_diffuse_map;
 uniform sampler2D        u_normal_map;
 
+uniform int u_use_normal_map;
+uniform int u_use_textures;
+
 void main()
 {
     // Vector from fragment to camera (camera always at 0,0,0)
     vec3 view = normalize(-v_position);
 
     // normal from normal map
-    vec3 normal = texture(u_normal_map, v_text_coord).rgb;
-    normal      = normalize(normal * 2 - 1.0f);
-    normal      = normalize(v_tbn * normal);
+    vec3 normal;
+    if (u_use_normal_map == 1) {
+        normal = texture(u_normal_map, v_text_coord).rgb;
+        normal = normalize(normal * 2 - 1.0f);
+        normal = normalize(v_tbn * normal);
+    } else {
+      normal = normalize(v_normal);
+    }
 
-    vec4 diffuseColor = texture(u_diffuse_map, v_text_coord);
-    if(diffuseColor.w  < 0.9){
-        discard;
+    vec4 diffuseColor;
+    if (u_use_textures == 1) {
+        diffuseColor = texture(u_diffuse_map, v_text_coord);
+        if(diffuseColor.w  < 0.9){
+            discard;
+        }
+    } else {
+        diffuseColor = vec4(u_material.diffuse, 1);
     }
 
     vec3 light      = normalize(-u_directional_light.direction);

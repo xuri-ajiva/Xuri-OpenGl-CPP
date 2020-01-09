@@ -5,6 +5,7 @@ layout(location = 1) in vec3 a_normal;
 layout(location = 2) in vec3 a_tangent;
 layout(location = 3) in vec2 a_text_coord;
 
+out vec3 v_normal;
 out vec3 v_position;
 out vec2 v_text_coord;
 out mat3 v_tbn;
@@ -17,6 +18,8 @@ void main()
 {
     gl_Position  = u_modelViewProj * vec4(a_position, 1.0f);
     
+	v_normal = mat3(u_invModelView) * a_normal;
+
     vec3 t   = normalize(mat3(u_invModelView) * a_tangent);
     vec3 n   = normalize(mat3(u_invModelView) * a_normal);
     t        = normalize(t - dot(t, n) * n); // Rerthogonalize with Gram-Schmidt process
