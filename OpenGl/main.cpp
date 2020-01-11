@@ -73,7 +73,7 @@ const char* vertexShader   = "basic-vertex-shader.glsl.vert";
 const char* fragmentShader = "basic-fragment-shader.glsl.frag";
 
 int main(int argc, char** argv) {
-	std::vector<Model*>     models;
+	std::vector<Model*>    models;
 	std::vector<glm::mat4> mats;
 
 	//std::string modelFile = (ModelsPos + "tree.bmf");
@@ -96,15 +96,18 @@ int main(int argc, char** argv) {
 	PrintStatus('S', shader.GetShaderID(), "-> Shader", 9,MESSAGE_COLOR);
 
 	int       directionLocation = GLCALL(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.direction"));
-	glm::vec3 sunColor          = glm::vec3(1);
-	glm::vec3 sunDirection      = glm::vec3(-1.0F);
+	glm::vec3 sunColor          = glm::vec3(.8);
+	glm::vec3 sunDirection      = glm::vec3(0, -1, 0);
+	auto      z                 = glm::vec3(0.0000001);
+	int       zero              = 0;
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.diffuse"),1,(float*)&sunColor));
-	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.specular"),1,(float*)&sunColor));
-	sunColor *= 0.4F;
+	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.specular"),1,(float*)&z));
+	sunColor *= 0.2F;
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_directional_light.ambient"),1,(float*)&sunColor));
+	//GLCALL(glUniform1iv(glGetUniformLocation(shader.GetShaderID(), "u_use_sun"),1,(int*)&zero));
 
-	glm::vec3 pointColor = glm::vec3(0, 0, 3);
-	pointColor *= 0;
+	glm::vec3 pointColor = glm::vec3(0, 0, 30);
+	//pointColor *= 0;
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_point_light.diffuse"),1,(float*)&pointColor));
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_point_light.specular"),1,(float*)&pointColor));
 	pointColor *= 0.2F;
@@ -115,7 +118,7 @@ int main(int argc, char** argv) {
 	int       pointLightLocation = GLCALL(glGetUniformLocation(shader.GetShaderID(), "u_point_light.position"));
 
 	glm::vec3 spotColor = glm::vec3(2);
-	spotColor *= 0;
+	//spotColor *= 0;
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.diffuse"),1,(float*)&spotColor));
 	GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.specular"),1,(float*)&spotColor));
 	spotColor *= 0.1F;
@@ -133,8 +136,8 @@ int main(int argc, char** argv) {
 	for (auto& p : fs::recursive_directory_iterator(path)) {
 		if (p.path().extension() == ext) {
 			std::cout << "Loading: " << p << '\n';
-			auto t = p.path().string();
-			Model*      model = new Model(t.c_str(), &shader);
+			auto   t     = p.path().string();
+			Model* model = new Model(t.c_str(), &shader);
 			model->Init();
 			models.push_back(model);
 			auto mat4X = glm::mat4(1.0F);
@@ -166,6 +169,7 @@ int main(int argc, char** argv) {
 	bool b_D = false;
 	bool b_Q = false;
 	bool b_E = false;
+	bool b_F = false;
 
 	//glPolygonMode (GL_FRONT_AND_BACK,GL_LINE);
 
@@ -212,6 +216,9 @@ int main(int argc, char** argv) {
 					case SDLK_F2:
 						if (state) SDL_SetRelativeMouseMode(SDL_FALSE);
 						break;
+					case SDLK_f:
+						if (state) b_F = !b_F;
+						break;
 					default: ;
 				}
 				if (event.key.keysym.mod & KMOD_LSHIFT) {
@@ -257,14 +264,23 @@ int main(int argc, char** argv) {
 		if (b_E) {
 			camera.moveUp(-main_class.delta * camaraSpeed);
 		}
+		if (b_F) {
+			spotColor = glm::vec3(2);
+		} else {
+			spotColor = glm::vec3(0);
+		}
+		GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.diffuse"),1,(float*)&spotColor));
+		GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.specular"),1,(float*)&spotColor));
+		spotColor *= 0.1F;
+		GLCALL(glUniform3fv(glGetUniformLocation(shader.GetShaderID(), "u_spot_light.ambient"),1,(float*)&spotColor));
+
 
 		camera.update();
 		modelViewProj          = camera.GetViewProj() * camModelRender;
 		glm::mat4 modelView    = camera.GetView() * camModelRender;
 		glm::mat4 invModelView = glm::transpose(glm::inverse(modelView));
 
-		glm::vec4 transformedSunDirection = glm::transpose(glm::inverse(camera.GetView())) * glm::vec4(
-			sunDirection, 1.0F);
+		glm::vec4 transformedSunDirection = glm::transpose(glm::inverse(camera.GetView())) * glm::vec4(sunDirection, 1.0F);
 		glUniform3fv(directionLocation, 1, (float*)&transformedSunDirection);
 
 		glm::mat4 pointLightMatrix              = glm::rotate(glm::mat4(1), - main_class.delta, {0, 1, 0});
@@ -284,7 +300,7 @@ int main(int argc, char** argv) {
 			modelViewProj = camera.GetViewProj() * mats[i];
 			modelView     = camera.GetView() * mats[i];
 			invModelView  = glm::transpose(glm::inverse(modelView));
-			
+
 			GLCALL(glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE, &modelViewProj[0][0]));
 			GLCALL(glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, &modelView[0][0]));
 			GLCALL(glUniformMatrix4fv(invModelViewLocation, 1, GL_FALSE, &invModelView[0][0]));

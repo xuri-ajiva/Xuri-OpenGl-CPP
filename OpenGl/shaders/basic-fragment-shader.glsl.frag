@@ -56,6 +56,7 @@ uniform sampler2D        u_normal_map;
 
 uniform int u_use_normal_map;
 uniform int u_use_textures;
+uniform int u_use_sun;
 
 void main()
 {
@@ -82,11 +83,26 @@ void main()
         diffuseColor = vec4(u_material.diffuse, 1);
     }
 
-    vec3 light      = normalize(-u_directional_light.direction);
-    vec3 reflection = reflect(u_directional_light.direction, normal);
-    vec3 ambient  = u_directional_light.ambient  * diffuseColor.xyz;
-    vec3 diffuse  = u_directional_light.diffuse  * diffuseColor.xyz *      max( dot(normal, light),    0.0);
-    vec3 specular = u_directional_light.specular * u_material.specular* pow( max( dot(reflection, view), 0.0), u_material.shininess);
+    vec3 light      ;
+    vec3 reflection ;
+    vec3 ambient    ;
+    vec3 diffuse    ;
+    vec3 specular   ;
+
+    if(u_use_sun == 1) {
+        light      = normalize(-u_directional_light.direction);
+        reflection = reflect(u_directional_light.direction, normal);
+        ambient    = u_directional_light.ambient  * diffuseColor.xyz;
+        diffuse    = u_directional_light.diffuse  * diffuseColor.xyz *      max( dot(normal, light),    0.0);
+        specular   = u_directional_light.specular * u_material.specular* pow( max( dot(reflection, view), 0.0), u_material.shininess);
+    } else {
+        light      = normalize(-u_directional_light.direction);
+        reflection = reflect(u_directional_light.direction, normal);
+        ambient    = u_directional_light.ambient  * diffuseColor.xyz;
+        diffuse    = u_directional_light.diffuse  * diffuseColor.xyz *      max( dot(normal, light),    0.0);
+        specular   = u_directional_light.specular * u_material.specular * pow( max( dot(reflection, view), 0.0), u_material.shininess);
+    }
+
 
     light      = normalize(u_point_light.position - v_position);
     reflection = reflect(light, normal);

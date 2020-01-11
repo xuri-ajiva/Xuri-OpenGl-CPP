@@ -234,17 +234,18 @@ public:
 				case TextureAndNormal:
 					for (Uint64 k = 0; k < numVertices; k++) {
 						VertexTextureAndNormal vertex {};
-						input.read((char*)&vertex.position.x, sizeof(float));
-						input.read((char*)&vertex.position.y, sizeof(float));
-						input.read((char*)&vertex.position.z, sizeof(float));
-						input.read((char*)&vertex.normal.x, sizeof(float));
-						input.read((char*)&vertex.normal.y, sizeof(float));
-						input.read((char*)&vertex.normal.z, sizeof(float));
-						input.read((char*)&vertex.tangent.x, sizeof(float));
-						input.read((char*)&vertex.tangent.y, sizeof(float));
-						input.read((char*)&vertex.tangent.z, sizeof(float));
-						input.read((char*)&vertex.textureCord.x, sizeof(float));
-						input.read((char*)&vertex.textureCord.y, sizeof(float));
+						//input.read((char*)&vertex.position.x, sizeof(float));
+						//input.read((char*)&vertex.position.y, sizeof(float));
+						//input.read((char*)&vertex.position.z, sizeof(float));
+						//input.read((char*)&vertex.normal.x, sizeof(float));
+						//input.read((char*)&vertex.normal.y, sizeof(float));
+						//input.read((char*)&vertex.normal.z, sizeof(float));
+						//input.read((char*)&vertex.tangent.x, sizeof(float));
+						//input.read((char*)&vertex.tangent.y, sizeof(float));
+						//input.read((char*)&vertex.tangent.z, sizeof(float));
+						//input.read((char*)&vertex.textureCord.x, sizeof(float));
+						//input.read((char*)&vertex.textureCord.y, sizeof(float));
+						input.read((char*)&vertex.position.x, sizeof(VertexTextureAndNormal));
 						verticesN.push_back(vertex);
 					}
 					data = verticesN.data();
@@ -260,6 +261,7 @@ public:
 						input.read((char*)&vertex.normal.z, sizeof(float));
 						input.read((char*)&vertex.textureCord.x, sizeof(float));
 						input.read((char*)&vertex.textureCord.y, sizeof(float));
+						//put.read((char*)&vertex.position.x, sizeof(VertexTextureOnly));
 						verticesT.push_back(vertex);
 					}
 					data = verticesT.data();
@@ -267,12 +269,13 @@ public:
 				case MaterialOnly:
 					for (Uint64 r = 0; r < numVertices; r++) {
 						VertexMaterialOnly vertex {};
-						input.read((char*)&vertex.position.x, sizeof(float));
-						input.read((char*)&vertex.position.y, sizeof(float));
-						input.read((char*)&vertex.position.z, sizeof(float));
-						input.read((char*)&vertex.normal.x, sizeof(float));
-						input.read((char*)&vertex.normal.y, sizeof(float));
-						input.read((char*)&vertex.normal.z, sizeof(float));
+						//input.read((char*)&vertex.position.x, sizeof(float));
+						//input.read((char*)&vertex.position.y, sizeof(float));
+						//input.read((char*)&vertex.position.z, sizeof(float));
+						//input.read((char*)&vertex.normal.x, sizeof(float));
+						//input.read((char*)&vertex.normal.y, sizeof(float));
+						//input.read((char*)&vertex.normal.z, sizeof(float));
+						input.read((char*)&vertex.position.x, sizeof(VertexMaterialOnly));
 						verticesM.push_back(vertex);
 					}
 					data = verticesM.data();
