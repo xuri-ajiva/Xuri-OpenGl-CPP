@@ -195,7 +195,7 @@ namespace ModelConverterGUI {
                     br.Write( diffuesMapNameLength );
 
                     if ( diffuesMapNameLength > 0 && ( mode == VertexMode.TextureOnly || mode == VertexMode.TextureAndNormal ) ) {
-                        br.Write(Encoding.UTF8.GetBytes(pathPrefix + material.diffuseMapName) );
+                        br.Write( Encoding.UTF8.GetBytes( pathPrefix + material.diffuseMapName ) );
                         Console.WriteLine( pathPrefix + material.diffuseMapName );
                     }
 
@@ -207,7 +207,7 @@ namespace ModelConverterGUI {
                     br.Write( normalMapNameLength );
 
                     if ( normalMapNameLength > 0 && mode == VertexMode.TextureAndNormal ) {
-                        br.Write(Encoding.UTF8.GetBytes(pathPrefix + material.normalMapName));
+                        br.Write( Encoding.UTF8.GetBytes( pathPrefix + material.normalMapName ) );
                         Console.WriteLine( pathPrefix + material.normalMapName );
                     }
 
@@ -289,7 +289,7 @@ namespace ModelConverterGUI {
             return 0;
         }
 
-        byte[] getBytes(Material material) {
+        static byte[] getBytes(Material material) {
             int    size = Marshal.SizeOf( material );
             int    s    = Marshal.SizeOf( typeof(BMFMaterial) );
             byte[] arr  = new byte[size];
@@ -308,7 +308,24 @@ namespace ModelConverterGUI {
             //return material.GetBytes();
         }
 
-        byte[] getBytesT<T>(T value) {
+        public static Material fromBytesMatertal(byte[] bytes) {
+            BMFMaterial s    = default;
+            Material    str  = default;
+            int         size = Marshal.SizeOf( s );
+            IntPtr      ptr  = Marshal.AllocHGlobal( size );
+
+            Marshal.Copy( bytes, 0, ptr, size );
+
+            s = (BMFMaterial) Marshal.PtrToStructure( ptr, s.GetType() );
+
+            str = new Material() { diffuse = s.diffuse, shininess = s.shininess, specular = s.specular, emissive = s.emissive };
+
+            Marshal.FreeHGlobal( ptr );
+
+            return str;
+        }
+
+        static byte[] getBytesT <T>(T value) {
             int    size = Marshal.SizeOf( value );
             byte[] arr  = new byte[size];
 
@@ -324,7 +341,7 @@ namespace ModelConverterGUI {
             return arr;
         }
 
-        T fromBytes <T>(byte[] arr) {
+        static T fromBytes <T>(byte[] arr) {
             T      str  = default;
             int    size = Marshal.SizeOf( str );
             IntPtr ptr  = Marshal.AllocHGlobal( size );
@@ -359,6 +376,22 @@ namespace ModelConverterGUI {
 
             return arr;
         }
+
+        #region Overrides of ValueType
+
+        /// <inheritdoc />
+        public override string ToString() {
+            var str = "";
+            str += "[" +this.diffuse.ToString();
+            str += ", "+this.specular.ToString();
+            str += ", "+this.emissive.ToString();
+            str += ", "+this.shininess.ToString("0.000") + "]";
+
+            return str;
+        }
+
+        #endregion
+
     }
 
     public struct BMFMaterial {
@@ -435,6 +468,14 @@ namespace ModelConverterGUI {
 
             return arr;
         }
+
+        #region Overrides of ValueType
+
+        /// <inheritdoc />
+        public override string ToString() => "{"+ this.x.ToString("0.000") + ", "+ this.y.ToString("0.000") +", " + this.z.ToString("0.000") +"}";
+
+        #endregion
+
     }
 
     public class Mesh {

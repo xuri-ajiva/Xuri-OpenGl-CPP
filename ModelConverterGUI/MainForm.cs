@@ -12,31 +12,50 @@ using System.Windows.Forms;
 
 namespace ModelConverterGUI {
     public partial class MainForm : Form {
-        public ModelWorker  modelWorker = new ModelWorker();
-        VertexModeForm      vmode       = new VertexModeForm();
-        TextBoxStreamWriter _writer     = null;
-        private MyListView  fileList;
-        private Thread      t;
+        public ModelWorker        modelWorker = new ModelWorker();
+        VertexModeForm            vmode       = new VertexModeForm();
+        TextBoxStreamWriter       _writer     = null;
+        private        MyListView fileList;
+        private        Thread     _t;
+        private static TextWriter _tx = Console.Out;
+        public static  FileViever FV  = new FileViever();
 
         public MainForm() {
             InitializeComponent();
 
             this.fileList = new MyListView();
-            this.fileList.Columns.Add( new ColumnHeader( 0 ) { Text = "File", Width = -2 } );
+
+            this.fileList.MouseDoubleClick += FileListOnMouseDoubleClick;
+            this.fileList.Columns.Add( new ColumnHeader( 0 ) { Text = "File", Width            = 200 } );
+            this.fileList.Columns.Add( new ColumnHeader( 0 ) { Text = "ConverterAction", Width = -2 } );
+            this.spc.Panel1.Controls.Add( this.fileList );
+
             this.fileList.View         = View.Details;
             this.fileList.Dock         = DockStyle.Fill;
             this.txtConsole.Dock       = DockStyle.Fill;
             this.txtConsole.ScrollBars = ScrollBars.Both;
-            this.spc.Panel1.Controls.Add( this.fileList );
-            this.button1.Dock         = DockStyle.Bottom;
-            this.spc.Dock             = DockStyle.Fill;
-            this.progressBar1.Dock    = DockStyle.Bottom;
-            this.progressBar1.Visible = false;
+            this.button1.Dock          = DockStyle.Fill;
+            this.button2.Dock          = DockStyle.Right;
+            this.panel1.Dock           = DockStyle.Bottom;
+            this.panel1.Height         = this.button1.Height;
+            this.spc.Dock              = DockStyle.Fill;
+            this.progressBar1.Dock     = DockStyle.Bottom;
+            this.progressBar1.Visible  = false;
+
             this.spc.BringToFront();
 
             this._writer = new TextBoxStreamWriter( this.txtConsole );
             // Redirect the out Console stream
             Console.SetOut( this._writer );
+        }
+
+        private void FileListOnMouseDoubleClick(object sender, MouseEventArgs e) {
+            var c = this.fileList.SelectedItems[0];
+
+            if ( c == null ) return;
+
+            this.vmode.UserInput( c.SubItems[0].Text, this );
+            c.SubItems[1].Text = this.vmode.VMode.ToString();
         }
 
         private void Form1_DragDrop(object sender, DragEventArgs e) {
@@ -46,11 +65,11 @@ namespace ModelConverterGUI {
             if ( !files.Any() )
                 return;
 
-            foreach ( string file in files ) {
+            foreach ( var file in files ) {
                 if ( !File.Exists( file ) ) continue;
 
                 if ( !this.fileList.Items.Contains( new ListViewItem( file ) ) )
-                    this.fileList.Items.Add( file );
+                    this.fileList.Items.Add( new ListViewItem( new[] { file, VertexMode.MaterialOnly.ToString() } ) );
             }
         }
 
@@ -58,17 +77,25 @@ namespace ModelConverterGUI {
 
         private void button1_Click(object sender, EventArgs e) {
             const int maxtext = 100000;
-            foreach ( ListViewItem i in this.fileList.Items ) {
-                this.vmode.UserInput( i.Text, this );
 
-                this.t = new Thread( () => { this.modelWorker.main( this.vmode.File, this.vmode.VMode ); } );
-                this.t.Start();
+            foreach ( ListViewItem i in this.fileList.Items ) {
+                var        fName = i.SubItems[0].Text;
+                VertexMode vertexMode;
+
+                if ( !Enum.TryParse( i.SubItems[1].Text, out vertexMode ) ) {
+                    MessageBox.Show( "Internal Error" );
+
+                    throw new ArgumentException( "Error No Known Vertex Mode", i.SubItems[1].Text );
+                }
+
+                this._t = new Thread( () => { this.modelWorker.main( fName, vertexMode ); } );
+                this._t.Start();
                 this.progressBar1.Visible     = true;
                 this.button1.Enabled          = false;
                 this.UseWaitCursor            = true;
                 this.txtConsole.UseWaitCursor = true;
 
-                while ( this.t.IsAlive ) {
+                while ( this._t.IsAlive ) {
                     Application.DoEvents();
                     Thread.Sleep( 100 );
 
@@ -78,7 +105,7 @@ namespace ModelConverterGUI {
                         this.txtConsole.ScrollToCaret();
                     } ) );
 
-                    if ( this._writer.text.Length > maxtext ) this._writer.text = this._writer.text.Substring(maxtext/2  );
+                    if ( this._writer.text.Length > maxtext ) this._writer.text = this._writer.text.Substring( maxtext / 2 );
                 }
 
                 this.button1.Text             = "go";
@@ -90,8 +117,17 @@ namespace ModelConverterGUI {
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e) {
-            this.t?.Abort();
+            this._t?.Abort();
             Environment.Exit( 0 );
+        }
+
+        private void button2_Click(object sender, EventArgs e) {
+            if ( FV != null )
+                FV.Show();
+            else {
+                FV = new FileViever();
+                FV.Show();
+            }
         }
     }
 
@@ -107,7 +143,7 @@ namespace ModelConverterGUI {
             //Application.DoEvents();
         }
 
-        public override Encoding Encoding { get { return Encoding.UTF8; } }
+        public override Encoding Encoding => Encoding.UTF8;
     }
 
     public class MyListView : ListView {

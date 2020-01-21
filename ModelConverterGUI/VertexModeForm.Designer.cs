@@ -56,9 +56,9 @@
             // comboBox1
             // 
             this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Location = new System.Drawing.Point(63, 44);
+            this.comboBox1.Location = new System.Drawing.Point(12, 41);
             this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(183, 21);
+            this.comboBox1.Size = new System.Drawing.Size(171, 21);
             this.comboBox1.TabIndex = 2;
             // 
             // VertexModeForm
