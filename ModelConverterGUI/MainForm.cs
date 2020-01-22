@@ -37,11 +37,13 @@ namespace ModelConverterGUI {
             this.button1.Dock          = DockStyle.Fill;
             this.button2.Dock          = DockStyle.Right;
             this.panel1.Dock           = DockStyle.Bottom;
-            this.panel1.Height         = this.button1.Height;
             this.spc.Dock              = DockStyle.Fill;
             this.progressBar1.Dock     = DockStyle.Bottom;
+            this.menuStrip1.Dock       = DockStyle.None;
+            this.panel1.Height         = this.button1.Height;
             this.progressBar1.Visible  = false;
 
+            this.menuStrip1.BringToFront();
             this.spc.BringToFront();
 
             this._writer = new TextBoxStreamWriter( this.txtConsole );
@@ -94,6 +96,8 @@ namespace ModelConverterGUI {
                 this.button1.Enabled          = false;
                 this.UseWaitCursor            = true;
                 this.txtConsole.UseWaitCursor = true;
+                this.AllowDrop                = false;
+                this.menuStrip1.Enabled       = false;
 
                 while ( this._t.IsAlive ) {
                     Application.DoEvents();
@@ -113,6 +117,8 @@ namespace ModelConverterGUI {
                 this.button1.Enabled          = true;
                 this.UseWaitCursor            = false;
                 this.txtConsole.UseWaitCursor = false;
+                this.AllowDrop                = true;
+                this.menuStrip1.Enabled       = true;
             }
         }
 
@@ -129,6 +135,19 @@ namespace ModelConverterGUI {
                 FV.Show();
             }
         }
+
+        private void openToolStripMenuItem_Click(object sender, EventArgs e) {
+            this.openFile.Multiselect = true;
+
+            if ( this.openFile.ShowDialog( this ) == DialogResult.OK ) {
+                foreach ( var file in this.openFile.FileNames ) {
+                    if ( !this.fileList.Items.Contains( new ListViewItem( file ) ) )
+                        this.fileList.Items.Add( new ListViewItem( new[] { file, VertexMode.MaterialOnly.ToString() } ) );
+                }
+            }
+        }
+
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e) { Close(); }
     }
 
     public class TextBoxStreamWriter : TextWriter {
