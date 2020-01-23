@@ -278,5 +278,6 @@ namespace ModelConverterGUI {
             e.Effect = str.Length == 1 ? DragDropEffects.Copy : DragDropEffects.None;
         }
 
+        private void FileViever_FormClosing(object sender, FormClosingEventArgs e) { button2_Click( default, default ); }
     }
 }

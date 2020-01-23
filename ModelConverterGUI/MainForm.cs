@@ -26,29 +26,62 @@ namespace ModelConverterGUI {
             this.fileList = new MyListView();
 
             this.fileList.MouseDoubleClick += FileListOnMouseDoubleClick;
+            this.fileList.KeyDown          += FileListOnKeyDown;
             this.fileList.Columns.Add( new ColumnHeader( 0 ) { Text = "File", Width            = 200 } );
             this.fileList.Columns.Add( new ColumnHeader( 0 ) { Text = "ConverterAction", Width = -2 } );
             this.spc.Panel1.Controls.Add( this.fileList );
 
-            this.fileList.View         = View.Details;
-            this.fileList.Dock         = DockStyle.Fill;
-            this.txtConsole.Dock       = DockStyle.Fill;
             this.txtConsole.ScrollBars = ScrollBars.Both;
-            this.button1.Dock          = DockStyle.Fill;
-            this.button2.Dock          = DockStyle.Right;
-            this.panel1.Dock           = DockStyle.Bottom;
-            this.spc.Dock              = DockStyle.Fill;
-            this.progressBar1.Dock     = DockStyle.Bottom;
-            this.menuStrip1.Dock       = DockStyle.None;
-            this.panel1.Height         = this.button1.Height;
-            this.progressBar1.Visible  = false;
+            this.fileList.View         = View.Details;
+
+            this.fileList.Dock     = DockStyle.Fill;
+            this.txtConsole.Dock   = DockStyle.Fill;
+            this.button1.Dock      = DockStyle.Fill;
+            this.button2.Dock      = DockStyle.Right;
+            this.panel1.Dock       = DockStyle.Bottom;
+            this.spc.Dock          = DockStyle.Fill;
+            this.progressBar1.Dock = DockStyle.Bottom;
+            this.menuStrip1.Dock   = DockStyle.None;
+
+            this.panel1.Height        = this.button1.Height;
+            this.progressBar1.Visible = false;
 
             this.menuStrip1.BringToFront();
             this.spc.BringToFront();
 
+            this.modelWorker.OnActionCallback += ModelWorkerOnOnActionCallback;
+
             this._writer = new TextBoxStreamWriter( this.txtConsole );
             // Redirect the out Console stream
             Console.SetOut( this._writer );
+        }
+
+        private void FileListOnKeyDown(object sender, KeyEventArgs e) {
+            if ( e.KeyCode == Keys.Delete && this.fileList.SelectedItems.Count > 0 ) {
+                var sl = this.fileList.SelectedItems;
+
+                foreach ( ListViewItem i in sl ) {
+                    this.fileList.Items.Remove( i );
+                }
+            }
+        }
+
+
+        private void ModelWorkerOnOnActionCallback(object sender, ModelWorker.ModelWorkerEventArgs args) {
+            if ( args.EventType == ModelWorker.ModelWorkerEventArgs.EventArgsType.TextureNotExists ) {
+                var t = new Thread( () => {
+                    using ( var of = new OpenFileDialog { FileName = args.Args, Title = "Browse For File: " + args.Args, CheckFileExists = true, InitialDirectory = args.Context } ) {
+                        if ( of.ShowDialog() == DialogResult.OK ) {
+                            args.Args = of.FileName;
+                        }
+                    }
+#pragma warning disable 618
+                } );
+#pragma warning restore 618
+                t.SetApartmentState(  ApartmentState.STA );
+                t.Start();
+                t.Join();
+            }
         }
 
         private void FileListOnMouseDoubleClick(object sender, MouseEventArgs e) {

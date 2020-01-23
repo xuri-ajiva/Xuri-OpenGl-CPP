@@ -20,15 +20,15 @@ namespace ModelConverterGUI {
 
             for ( int i = 0; i < mesh.VertexCount; i++ ) {
                 if ( mesh.HasVertices ) {
-                    Position position = new Position( mesh.Vertices[i] );
-                    m.positions.Add( position );
+                    Vec3 vec3 = new Vec3( mesh.Vertices[i] );
+                    m.positions.Add( vec3 );
                 }
                 else {
                     Console.WriteLine( "[" + i + "]: " + "No Vertices" );
                 }
 
                 if ( mesh.HasNormals ) {
-                    Position normal = new Position( mesh.Normals[i] );
+                    Vec3 normal = new Vec3( mesh.Normals[i] );
                     m.normals.Add( normal );
                 }
                 else {
@@ -37,7 +37,7 @@ namespace ModelConverterGUI {
 
                 if ( mode == VertexMode.TextureAndNormal )
                     if ( mesh.HasTangentBasis ) {
-                        Position tangent = new Position( mesh.Tangents[i] );
+                        Vec3 tangent = new Vec3( mesh.Tangents[i] );
                         m.tangents.Add( tangent );
                     }
                     else {
@@ -46,7 +46,7 @@ namespace ModelConverterGUI {
 
                 if ( mode == VertexMode.TextureAndNormal || mode == VertexMode.TextureOnly )
                     if ( mesh.HasTextureCoords( 0 ) ) {
-                        Position2D uv = new Position2D( mesh.TextureCoordinateChannels[0][i] );
+                        Vec2 uv = new Vec2( mesh.TextureCoordinateChannels[0][i] );
                         m.uvs.Add( uv );
                     }
                     else {
@@ -77,19 +77,19 @@ namespace ModelConverterGUI {
             }
         }
 
-        void ProcessMaterials(Scene scene) {
+        void ProcessMaterials(Scene scene, string directoryName, VertexMode mode) {
             for ( int i = 0; i < scene.MaterialCount; i++ ) {
                 Material        mat      = new Material();
                 Assimp.Material material = scene.Materials[i];
 
                 var diffuse = material.ColorDiffuse;
-                mat.diffuse = new Position( diffuse.R, diffuse.G, diffuse.B );
+                mat.diffuse = new Vec3( diffuse.R, diffuse.G, diffuse.B );
 
                 var specular = material.ColorSpecular;
-                mat.specular = new Position( specular.R, specular.G, specular.B );
+                mat.specular = new Vec3( specular.R, specular.G, specular.B );
 
                 var emissive = material.ColorEmissive;
-                mat.emissive = new Position( emissive.R, emissive.G, emissive.B );
+                mat.emissive = new Vec3( emissive.R, emissive.G, emissive.B );
 
                 float shininess = material.Shininess;
                 mat.shininess = shininess;
@@ -105,11 +105,28 @@ namespace ModelConverterGUI {
 
                 if ( numDiffuseMaps > 0 ) {
                     material.GetMaterialTexture( TextureType.Diffuse, 0, out var diffuseMapName );
+                    Console.WriteLine( diffuseMapName.FilePath );
+
+                    if ( !File.Exists( diffuseMapName.FilePath ) && ( mode == VertexMode.TextureAndNormal || mode == VertexMode.TextureOnly ) ) {
+                        var a = new ModelWorkerEventArgs() { Args = diffuseMapName.FilePath, EventType = ModelWorkerEventArgs.EventArgsType.TextureNotExists, Context = directoryName };
+                        this.OnActionCallback?.Invoke( this, a );
+                        diffuseMapName.FilePath = a.Args.Replace( directoryName, "" );
+                    }
+
                     mat.diffuseMapName = diffuseMapName.FilePath;
                 }
 
                 if ( numNormalMaps > 0 ) {
                     material.GetMaterialTexture( TextureType.Normals, 0, out var normalMapName );
+                    Console.WriteLine( normalMapName.FilePath );
+
+                    if ( !File.Exists( normalMapName.FilePath ) && mode == VertexMode.TextureAndNormal ) {
+                        var a = new ModelWorkerEventArgs() { Args = normalMapName.FilePath, EventType = ModelWorkerEventArgs.EventArgsType.TextureNotExists, Context = directoryName };
+                        this.OnActionCallback?.Invoke( this, a );
+                        normalMapName.FilePath = a.Args.Replace( directoryName, "" );
+                        ;
+                    }
+
                     mat.normalMapName = normalMapName.FilePath;
                 }
 
@@ -160,7 +177,7 @@ namespace ModelConverterGUI {
                     return -1;
             }
 
-            ProcessMaterials( scene );
+            ProcessMaterials( scene, Path.GetDirectoryName( fileName )+ "\\", mode );
             ProcessNode( scene.RootNode, scene, mode );
 
             string fileNameWithoutExtension = Path.GetFileNameWithoutExtension( fileName );
@@ -184,12 +201,13 @@ namespace ModelConverterGUI {
                     br.Write( getBytes( material ) );
 
                     const string pathPrefix           = "models/";
-                    UInt64       diffuesMapNameLength = UInt64.MinValue;
-                    UInt64       normalMapNameLength  = UInt64.MinValue;
+                    UInt64       diffuesMapNameLength = 0;
+                    UInt64       normalMapNameLength  = 0;
 
                     // Diffuse map
                     if ( mode == VertexMode.TextureOnly || mode == VertexMode.TextureAndNormal ) {
-                        diffuesMapNameLength = (UInt64) ( string.IsNullOrEmpty( material.diffuseMapName ) ? 0 : material.diffuseMapName.Length + pathPrefix.Length );
+                        if ( !string.IsNullOrEmpty( material.diffuseMapName ) )
+                            diffuesMapNameLength = (UInt64) ( material.diffuseMapName.Length + pathPrefix.Length );
                     }
 
                     br.Write( diffuesMapNameLength );
@@ -201,7 +219,8 @@ namespace ModelConverterGUI {
 
                     // Normal map
                     if ( mode == VertexMode.TextureAndNormal ) {
-                        normalMapNameLength = (UInt64) ( string.IsNullOrEmpty( material.normalMapName ) ? 0 : material.normalMapName.Length + pathPrefix.Length );
+                        if ( !string.IsNullOrEmpty( material.normalMapName ) )
+                            normalMapNameLength = (UInt64) ( material.normalMapName.Length + pathPrefix.Length );
                     }
 
                     br.Write( normalMapNameLength );
@@ -353,18 +372,41 @@ namespace ModelConverterGUI {
 
             return str;
         }
+
+        public event Action<object, ModelWorkerEventArgs> OnActionCallback;
+
+        /// <inheritdoc />
+        public class ModelWorkerEventArgs : EventArgs {
+
+            public enum EventArgsType {
+                TextureNotExists,
+            }
+
+            /// <summary>
+            /// Modify This value to your fittings
+            /// </summary>
+            public string Args;
+
+            /// <summary>
+            /// For example The Path where the model is located
+            /// </summary>
+            public string Context;
+
+            public EventArgsType EventType;
+        }
+
     }
 
 
     #region Structe
 
     public struct Material {
-        public Position diffuse;
-        public Position specular;
-        public Position emissive;
-        public float    shininess;
-        public string   diffuseMapName;
-        public string   normalMapName;
+        public Vec3   diffuse;
+        public Vec3   specular;
+        public Vec3   emissive;
+        public float  shininess;
+        public string diffuseMapName;
+        public string normalMapName;
 
         public byte[] GetBytes() {
             int    sP  = sizeof(Single) * 3;
@@ -382,10 +424,10 @@ namespace ModelConverterGUI {
         /// <inheritdoc />
         public override string ToString() {
             var str = "";
-            str += "[" +this.diffuse.ToString();
-            str += ", "+this.specular.ToString();
-            str += ", "+this.emissive.ToString();
-            str += ", "+this.shininess.ToString("0.000") + "]";
+            str += "["                                       + this.diffuse.ToString();
+            str += ", "                                      + this.specular.ToString();
+            str += ", "                                      + this.emissive.ToString();
+            str += ", " + this.shininess.ToString( "0.000" ) + "]";
 
             return str;
         }
@@ -395,27 +437,27 @@ namespace ModelConverterGUI {
     }
 
     public struct BMFMaterial {
-        public Position diffuse;
-        public Position specular;
-        public Position emissive;
-        public float    shininess;
+        public Vec3  diffuse;
+        public Vec3  specular;
+        public Vec3  emissive;
+        public float shininess;
     }
 
-    public struct Position2D {
+    public struct Vec2 {
         public float  x;
         public Single y;
 
-        public Position2D(float x, float y) {
+        public Vec2(float x, float y) {
             this.x = x;
             this.y = y;
         }
 
-        public Position2D(Single value) {
+        public Vec2(Single value) {
             this.x = value;
             this.y = value;
         }
 
-        public Position2D(Vector3D v) {
+        public Vec2(Vector3D v) {
             this.x = v.X;
             this.y = v.Y;
         }
@@ -430,30 +472,30 @@ namespace ModelConverterGUI {
         }
     }
 
-    public struct Position {
+    public struct Vec3 {
         public Single x;
         public Single y;
         public Single z;
 
-        public Position(float x, float y, float z) {
+        public Vec3(float x, float y, float z) {
             this.x = x;
             this.y = y;
             this.z = z;
         }
 
-        public Position(Position2D vec, Single z) {
+        public Vec3(Vec2 vec, Single z) {
             this.x = vec.x;
             this.y = vec.y;
             this.z = z;
         }
 
-        public Position(Single value) {
+        public Vec3(Single value) {
             this.x = value;
             this.y = value;
             this.z = value;
         }
 
-        public Position(Vector3D v) {
+        public Vec3(Vector3D v) {
             this.x = v.X;
             this.y = v.Y;
             this.z = v.Z;
@@ -472,38 +514,38 @@ namespace ModelConverterGUI {
         #region Overrides of ValueType
 
         /// <inheritdoc />
-        public override string ToString() => "{"+ this.x.ToString("0.000") + ", "+ this.y.ToString("0.000") +", " + this.z.ToString("0.000") +"}";
+        public override string ToString() => "{" + this.x.ToString( "0.000" ) + ", " + this.y.ToString( "0.000" ) + ", " + this.z.ToString( "0.000" ) + "}";
 
         #endregion
 
     }
 
     public class Mesh {
-        public List<Position>   positions     = new List<Position>();
-        public List<Position>   normals       = new List<Position>();
-        public List<Position>   tangents      = new List<Position>();
-        public List<Position2D> uvs           = new List<Position2D>();
-        public List<Int32>      indices       = new List<Int32>();
-        public int              materialIndex = 0;
+        public List<Vec3>  positions     = new List<Vec3>();
+        public List<Vec3>  normals       = new List<Vec3>();
+        public List<Vec3>  tangents      = new List<Vec3>();
+        public List<Vec2>  uvs           = new List<Vec2>();
+        public List<Int32> indices       = new List<Int32>();
+        public int         materialIndex = 0;
 
     };
 
     public struct VertexTextureAndNormal {
-        Position   position;
-        Position   normal;
-        Position   tangent;
-        Position2D textureCord;
+        Vec3 _vec3;
+        Vec3 normal;
+        Vec3 tangent;
+        Vec2 textureCord;
     };
 
     public struct VertexTextureOnly {
-        Position   position;
-        Position   normal;
-        Position2D textureCord;
+        Vec3 _vec3;
+        Vec3 normal;
+        Vec2 textureCord;
     };
 
     public struct VertexMaterialOnly {
-        Position position;
-        Position normal;
+        Vec3 _vec3;
+        Vec3 normal;
     };
 
     public enum VertexMode {

@@ -262,6 +262,7 @@
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "FileViever";
             this.Text = "FileViever";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FileViever_FormClosing);
             this.DragDrop += new System.Windows.Forms.DragEventHandler(this.FileViever_DragDrop);
             this.DragEnter += new System.Windows.Forms.DragEventHandler(this.FileViever_DragEnter);
             this.Resize += new System.EventHandler(this.FileViever_Validated);
