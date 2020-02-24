@@ -12,7 +12,7 @@ namespace CSharpGl {
 
         int VAO_;
 
-        VertexBuffer(IntPtr data, int numVertices, VertexMode mode) {
+        public VertexBuffer(IntPtr data, ulong numVertices, VertexMode mode) {
             VAO_ = GL.GenVertexArray();
             GL.BindVertexArray( VAO_ );
 
@@ -40,7 +40,7 @@ namespace CSharpGl {
             //bind all to vio **-
             BUFFER_ID_ = GL.GenBuffer();
             GL.BindBuffer( BufferTarget.ArrayBuffer, BUFFER_ID_ );
-            GL.BufferData( BufferTarget.ArrayBuffer, numVertices * size, data, BufferUsageHint.StaticDraw );
+            GL.BufferData( BufferTarget.ArrayBuffer, (IntPtr) (numVertices *(uint) size), data, BufferUsageHint.StaticDraw );
             GL.EnableVertexAttribArray( 0 );
             GL.VertexAttribPointer( 0, 3, VertexAttribPointerType.Float, false, size, Marshal.OffsetOf( typeof(VertexMaterialOnly), "position" ) );
             GL.EnableVertexAttribArray( 1 );
@@ -48,13 +48,13 @@ namespace CSharpGl {
 
             if ( mode == VertexMode.TextureAndNormal ) {
                 GL.EnableVertexAttribArray( 2 );
-                GL.VertexAttribPointer( 2, 3, VertexAttribPointerType.Float, false, size, Marshal.OffsetOf( typeof(VertexMaterialOnly), "tangent" ) );
+                GL.VertexAttribPointer( 2, 3, VertexAttribPointerType.Float, false, size, Marshal.OffsetOf( typeof(VertexTextureAndNormal), "tangent" ) );
                 GL.EnableVertexAttribArray( 3 );
-                GL.VertexAttribPointer( 3, 3, VertexAttribPointerType.Float, false, size, Marshal.OffsetOf( typeof(VertexMaterialOnly), "textureCord" ) );
+                GL.VertexAttribPointer( 3, 3, VertexAttribPointerType.Float, false, size, Marshal.OffsetOf( typeof(VertexTextureAndNormal), "textureCord" ) );
             }
             else if ( mode == VertexMode.TextureOnly ) {
                 GL.EnableVertexAttribArray( 2 );
-                GL.VertexAttribPointer( 3, 3, VertexAttribPointerType.Float, false, size, Marshal.OffsetOf( typeof(VertexMaterialOnly), "textureCord" ) );
+                GL.VertexAttribPointer( 3, 3, VertexAttribPointerType.Float, false, size, Marshal.OffsetOf( typeof(VertexTextureOnly), "textureCord" ) );
             }
 
             //bind all to vio -**
@@ -62,11 +62,11 @@ namespace CSharpGl {
         }
 
 
-        void BIND() { GL.BindVertexArray( VAO_ ); }
+        public void BIND() { GL.BindVertexArray( VAO_ ); }
 
         void UNBIND() { GL.BindVertexArray( 0 ); }
 
-        int GET_BUFFER_ID() { return BUFFER_ID_; }
+        public int GET_BUFFER_ID() { return BUFFER_ID_; }
 
         public void Dispose() { GL.DeleteBuffer( this.BUFFER_ID_ ); }
     }

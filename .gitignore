@@ -341,3 +341,4 @@ healthchecksdb
 OpenGl/lib/stb_image.h
 OpenGl/libs/glm/
 /build
+/OpenGl/Textures/*

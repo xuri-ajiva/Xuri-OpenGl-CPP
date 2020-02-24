@@ -15,7 +15,9 @@ namespace CSharpGl {
             shaderId = createShader( vertexShaderFilename, fragmentShaderFilename );
         }
 
-        ~Shader() { GL.DeleteProgram( shaderId ); }
+      ~Shader() {
+          //GL.DeleteProgram( shaderId );
+      }
 
         public void bind() { GL.UseProgram( shaderId ); }
 
